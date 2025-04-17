@@ -51,7 +51,6 @@ obs_last = None
 action_last = None
 value_last = None
 log_prob_last = None
-cur_obs = None
 
 
 intial_obs = {
@@ -84,9 +83,6 @@ def reset_env(initial_state=None):
     logging.info(json.dumps(initial_state, indent=2))
     """Reset the environment and initialize the buffer."""
     global obs_last
-    global cur_obs
-    obs_last = intial_obs.copy() if initial_state is None else intial_obs.copy()
-    cur_obs = intial_obs.copy() if initial_state is None else intial_obs.copy()
     global step_count
     step_count = 0
     obs_last = dummy_env.reset()
@@ -123,53 +119,51 @@ def reset_env(initial_state=None):
     # (Optional) Validate against observation_space
     assert env.observation_space.contains(obs_last), "obs_last doesn't match the observation space!"
 
-    cur_obs = obs_last.copy()
-
     return obs_last
 
 
-def convert_matlab_state_to_py_state(cur_state_from_matlab=None):
-    # Log cur_state_from_matlab
-    logging.info("=== Current State ===")
-    logging.info(json.dumps(cur_state_from_matlab, indent=2))
+def set_state(initial_state=None):
+    # Log initial_state
+    logging.info("=== Initial State ===")
+    logging.info(json.dumps(initial_state, indent=2))
     """Reset the environment and initialize the buffer."""
-    global cur_obs
+    global obs_last
     global step_count
     step_count = 0
     from datetime import datetime, timezone
 
     # 1. utc_time (convert string to UNIX timestamp in seconds)
-    dt = datetime.strptime(cur_state_from_matlab["time"], "%d-%b-%Y %H:%M:%S")
+    dt = datetime.strptime(initial_state["time"], "%d-%b-%Y %H:%M:%S")
     utc_timestamp = int(dt.timestamp())
-    cur_obs["utc_time"] = np.array([utc_timestamp], dtype=np.int64)
+    obs_last["utc_time"] = np.array([utc_timestamp], dtype=np.int64)
 
     # 2. leo_pos (interleaved lat/lon)
     leo_pos = []
     for i in range(1, n_leo + 1):
-        leo = cur_state_from_matlab[f"LEO_{i}"]
+        leo = initial_state[f"LEO_{i}"]
         leo_pos.extend([leo["Latitude"], leo["Longitude"]])
-    cur_obs["leo_pos"] = np.array(leo_pos, dtype=np.float64)
+    obs_last["leo_pos"] = np.array(leo_pos, dtype=np.float64)
 
     # 3. geo_freq
-    cur_obs["geo_freq"] = np.array([cur_state_from_matlab["GeobaseFreq"]], dtype=np.float64)
+    obs_last["geo_freq"] = np.array([initial_state["GeobaseFreq"]], dtype=np.float64)
 
-    # 4. leo_freq (not in cur_state_from_matlab — fill with zeros or placeholder)
-    cur_obs["leo_freq"] = np.zeros(n_leo, dtype=np.float64)
+    # 4. leo_freq (not in initial_state — fill with zeros or placeholder)
+    obs_last["leo_freq"] = np.zeros(n_leo, dtype=np.float64)
 
     # 5. leo_access (flattened [LEO1_Melb, LEO1_Syd, LEO2_Melb, ..., LEO3_Syd])
     leo_access = []
     for i in range(1, n_leo + 1):
-        access = cur_state_from_matlab[f"LEO_{i}"]["AccessStatus"]
+        access = initial_state[f"LEO_{i}"]["AccessStatus"]
         leo_access.extend([
             float(access["Melbourne"]),
             float(access["Sydney"])
         ])
-    cur_obs["leo_access"] = np.array(leo_access, dtype=np.float64)
+    obs_last["leo_access"] = np.array(leo_access, dtype=np.float64)
 
     # (Optional) Validate against observation_space
-    assert env.observation_space.contains(cur_obs), "cur_obs doesn't match the observation space!"
+    assert env.observation_space.contains(obs_last), "obs_last doesn't match the observation space!"
 
-    return cur_obs
+    return obs_last
 
 
 def preprocess_obs(obs):
@@ -184,12 +178,12 @@ def preprocess_obs(obs):
         tensor_dict[key] = tensor_value
     return tensor_dict
 
-def get_action(obs_from_matlab):
+def get_action(obs):
     global obs_last, action_last, value_last, log_prob_last
-    obs_last = convert_matlab_state_to_py_state(obs_from_matlab)
+    obs_last = obs
 
     with torch.no_grad():
-        obs_tensor = preprocess_obs(obs_last)
+        obs_tensor = preprocess_obs(obs)
         # SB3 expects flattened observations for MultiInputPolicy
         flattened_obs = model.policy.obs_to_tensor(obs_tensor)[0]
         action_tensor, value_tensor, log_prob_tensor = model.policy.forward(flattened_obs)
@@ -197,13 +191,6 @@ def get_action(obs_from_matlab):
     action_last = action_tensor
     value_last = value_tensor
     log_prob_last = log_prob_tensor
-
-    action_mt = action_tensor.cpu().numpy().squeeze()
-    action_mt = action_mt.astype(np.float64)
-    action_mt = action_mt.tolist()
-
-    logging.info("=== Current Action ===")
-    logging.info(json.dumps(action_mt, indent=2))
 
     return action_tensor.cpu().numpy().squeeze()  # Remove batch dimension for env
 

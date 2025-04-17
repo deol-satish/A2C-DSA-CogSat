@@ -22,7 +22,7 @@ class CogSatDSAEnv(gym.Env):
             self.spec = gym.envs.registration.EnvSpec("CogSatDSAEnv-v1")
 
         # Action space: 4 devices picking from 11 channels (0 = no transmission)
-        self.action_space = MultiDiscrete([11] * 4)
+        self.action_space = MultiDiscrete([11] * self.n_leo)
 
         # Observation space structure
         self.observation_space = Dict({

@@ -340,7 +340,16 @@ for tIdx = 1:length(ts)
 
         % Call Python function without checking return value
         try
-            py.a2c_dsa.reset_env(py_state);
+            if tIdx == 1
+                fprintf('reset_env being called \n');
+                py.a2c_dsa.reset_env(py_state);                
+            else
+                fprintf('get_action being called \n');
+                py.a2c_dsa.get_action(py_state);
+                
+            end
+    
+            
             fprintf('State save attempted (no return value checked)\n');
         catch e
             fprintf('Error calling Python function:\n%s\n', e.message);
