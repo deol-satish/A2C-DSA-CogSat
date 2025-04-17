@@ -336,9 +336,11 @@ for tIdx = 1:length(ts)
         % Convert MATLAB struct to Python dict
         py_state = py.dict(snd_state);
 
+        display(py_state)
+
         % Call Python function without checking return value
         try
-            py.set_initial_state.set_initial_state(py_state);
+            py.a2c_dsa.reset_env(py_state);
             fprintf('State save attempted (no return value checked)\n');
         catch e
             fprintf('Error calling Python function:\n%s\n', e.message);

@@ -28,8 +28,9 @@ class CogSatDSAEnv(gym.Env):
         self.observation_space = Dict({
             "utc_time": Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.int64),
             "leo_pos": Box(low=-np.inf, high=np.inf, shape=(self.n_leo *2,), dtype=np.float64),
-            "geo_freq": Box(low=-np.inf, high=np.inf, shape=(self.n_geo), dtype=np.float64),
+            "geo_freq": Box(low=-np.inf, high=np.inf, shape=(self.n_geo,), dtype=np.float64),
             "leo_freq": Box(low=-np.inf, high=np.inf, shape=(self.n_leo,), dtype=np.float64),
+            "leo_access": Box(low=0, high=1, shape=(self.n_leo* self.n_leo_users,), dtype=np.float64),
         })
 
         self.terminated = False
@@ -42,29 +43,28 @@ class CogSatDSAEnv(gym.Env):
 
         obs = {
             "utc_time": np.array([0], dtype=np.int64),
-            "leo_pos": np.random.randn(self.n_leo).astype(np.float32),
-            "leo_rssi": np.random.randn(self.n_leo * self.n_leo_users).astype(np.float32),
-            "leo_sinr": np.random.randn(self.n_leo * self.n_leo_users).astype(np.float32),
-            "geo_rssi": np.random.randn(self.n_geo * self.n_geo_users).astype(np.float32),
-            "geo_sinr": np.random.randn(self.n_geo * self.n_geo_users).astype(np.float32),
+            "leo_pos": np.random.randn(self.n_leo * 2).astype(np.float64),  # e.g., [x1, y1, x2, y2, x3, y3]
+            "geo_freq": np.random.uniform(10.5, 12.0, size=(self.n_geo,)).astype(np.float64),
+            "leo_freq": np.random.uniform(20.0, 22.0, size=(self.n_leo,)).astype(np.float64),
+            "leo_access": np.random.randint(0, 2, size=(self.n_leo * self.n_leo_users,)).astype(np.float64),
         }
         return obs, {}
 
     def step(self, action):
         self.current_step += 1
-        reward = 0.0  # Placeholder
+        reward = 0.0  # Placeholder reward logic
         self.terminated = self.current_step >= 300
 
         obs = {
             "utc_time": np.array([self.current_step], dtype=np.int64),
-            "leo_pos": np.random.randn(self.n_leo).astype(np.float32),
-            "leo_rssi": np.random.randn(self.n_leo * self.n_leo_users).astype(np.float32),
-            "leo_sinr": np.random.randn(self.n_leo * self.n_leo_users).astype(np.float32),
-            "geo_rssi": np.random.randn(self.n_geo * self.n_geo_users).astype(np.float32),
-            "geo_sinr": np.random.randn(self.n_geo * self.n_geo_users).astype(np.float32),
+            "leo_pos": np.random.randn(self.n_leo * 2).astype(np.float64),
+            "geo_freq": np.random.uniform(10.5, 12.0, size=(self.n_geo,)).astype(np.float64),
+            "leo_freq": np.random.uniform(20.0, 22.0, size=(self.n_leo,)).astype(np.float64),
+            "leo_access": np.random.randint(0, 2, size=(self.n_leo * self.n_leo_users,)).astype(np.float64),
         }
 
         return obs, reward, self.terminated, False, {}
+
 
     def render(self):
         pass  # Optional: plot satellite movement, SINR, channel use, etc.

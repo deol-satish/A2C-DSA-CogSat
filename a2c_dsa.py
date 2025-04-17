@@ -1,11 +1,23 @@
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+import logging
+import json
+# Configure the logger
+logging.basicConfig(
+    filename='state_log.txt',
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    filemode='w'  # Overwrites the file each time
+)
+
 import numpy as np
 import torch
 import gymnasium as gym
 from stable_baselines3 import A2C
 from stable_baselines3.common.buffers import RolloutBuffer
 from stable_baselines3.common.vec_env import DummyVecEnv
+
+from utils.settings import n_leo,n_leo_users, n_geo, n_geo_users, initial_state
 
 from utils.env import CogSatDSAEnv
 env = CogSatDSAEnv()
@@ -15,6 +27,7 @@ print("Initial observation:", obs)
 action = env.action_space.sample()
 obs, reward, done, truncated, _ = env.step(action)
 print("Step observation:", obs)
+
 
 
 
@@ -39,6 +52,15 @@ action_last = None
 value_last = None
 log_prob_last = None
 
+intial_obs = {
+    "utc_time": np.array([0], dtype=np.int64),
+    "leo_pos": np.random.randn(n_leo * 2).astype(np.float64),  # e.g., [x1, y1, x2, y2, x3, y3]
+    "geo_freq": np.random.uniform(10.5, 12.0, size=(n_geo,)).astype(np.float64),
+    "leo_freq": np.random.uniform(20.0, 22.0, size=(n_leo,)).astype(np.float64),
+    "leo_access": np.random.randint(0, 2, size=(n_leo * n_leo_users,)).astype(np.float64),
+} 
+
+
 # You need to define these before use
 # env = YourCustomEnv()
 # dummy_env = YourCustomEnv()
@@ -54,12 +76,92 @@ buffer = DictRolloutBuffer(
     gae_lambda=model.gae_lambda
 )
 
-
-def reset_env():
+def reset_env(initial_state=None):
+    # Log initial_state
+    logging.info("=== Initial State ===")
+    logging.info(json.dumps(initial_state, indent=2))
+    """Reset the environment and initialize the buffer."""
     global obs_last
     global step_count
     step_count = 0
     obs_last = dummy_env.reset()
+    from datetime import datetime, timezone
+
+    # 1. utc_time (convert string to UNIX timestamp in seconds)
+    dt = datetime.strptime(initial_state["time"], "%d-%b-%Y %H:%M:%S")
+    utc_timestamp = int(dt.timestamp())
+    obs_last["utc_time"] = np.array([utc_timestamp], dtype=np.int64)
+
+    # 2. leo_pos (interleaved lat/lon)
+    leo_pos = []
+    for i in range(1, n_leo + 1):
+        leo = initial_state[f"LEO_{i}"]
+        leo_pos.extend([leo["Latitude"], leo["Longitude"]])
+    obs_last["leo_pos"] = np.array(leo_pos, dtype=np.float64)
+
+    # 3. geo_freq
+    obs_last["geo_freq"] = np.array([initial_state["GeobaseFreq"]], dtype=np.float64)
+
+    # 4. leo_freq (not in initial_state — fill with zeros or placeholder)
+    obs_last["leo_freq"] = np.zeros(n_leo, dtype=np.float64)
+
+    # 5. leo_access (flattened [LEO1_Melb, LEO1_Syd, LEO2_Melb, ..., LEO3_Syd])
+    leo_access = []
+    for i in range(1, n_leo + 1):
+        access = initial_state[f"LEO_{i}"]["AccessStatus"]
+        leo_access.extend([
+            float(access["Melbourne"]),
+            float(access["Sydney"])
+        ])
+    obs_last["leo_access"] = np.array(leo_access, dtype=np.float64)
+
+    # (Optional) Validate against observation_space
+    assert env.observation_space.contains(obs_last), "obs_last doesn't match the observation space!"
+
+    return obs_last
+
+
+def set_state(initial_state=None):
+    # Log initial_state
+    logging.info("=== Initial State ===")
+    logging.info(json.dumps(initial_state, indent=2))
+    """Reset the environment and initialize the buffer."""
+    global obs_last
+    global step_count
+    step_count = 0
+    from datetime import datetime, timezone
+
+    # 1. utc_time (convert string to UNIX timestamp in seconds)
+    dt = datetime.strptime(initial_state["time"], "%d-%b-%Y %H:%M:%S")
+    utc_timestamp = int(dt.timestamp())
+    obs_last["utc_time"] = np.array([utc_timestamp], dtype=np.int64)
+
+    # 2. leo_pos (interleaved lat/lon)
+    leo_pos = []
+    for i in range(1, n_leo + 1):
+        leo = initial_state[f"LEO_{i}"]
+        leo_pos.extend([leo["Latitude"], leo["Longitude"]])
+    obs_last["leo_pos"] = np.array(leo_pos, dtype=np.float64)
+
+    # 3. geo_freq
+    obs_last["geo_freq"] = np.array([initial_state["GeobaseFreq"]], dtype=np.float64)
+
+    # 4. leo_freq (not in initial_state — fill with zeros or placeholder)
+    obs_last["leo_freq"] = np.zeros(n_leo, dtype=np.float64)
+
+    # 5. leo_access (flattened [LEO1_Melb, LEO1_Syd, LEO2_Melb, ..., LEO3_Syd])
+    leo_access = []
+    for i in range(1, n_leo + 1):
+        access = initial_state[f"LEO_{i}"]["AccessStatus"]
+        leo_access.extend([
+            float(access["Melbourne"]),
+            float(access["Sydney"])
+        ])
+    obs_last["leo_access"] = np.array(leo_access, dtype=np.float64)
+
+    # (Optional) Validate against observation_space
+    assert env.observation_space.contains(obs_last), "obs_last doesn't match the observation space!"
+
     return obs_last
 
 
