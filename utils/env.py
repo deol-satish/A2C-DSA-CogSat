@@ -6,11 +6,16 @@ class CogSatDSAEnv(gym.Env):
     def __init__(self, env_config=None, render_mode=None):
         super(CogSatDSAEnv, self).__init__()
         
-        # Set static LEO/GEO counts, or pull from env_config if using Ray
-        self.n_leo = env_config.get("n_leo", 3) if env_config else 3
-        self.n_leo_users = env_config.get("n_leo_users", 2) if env_config else 2
-        self.n_geo = env_config.get("n_geo", 2) if env_config else 2
-        self.n_geo_users = env_config.get("n_geo_users", 1) if env_config else 1
+        # # Set static LEO/GEO counts, or pull from env_config if using Ray
+        # self.n_leo = env_config.get("n_leo", 3) if env_config else 3
+        # self.n_leo_users = env_config.get("n_leo_users", 2) if env_config else 2
+        # self.n_geo = env_config.get("n_geo", 2) if env_config else 2
+        # self.n_geo_users = env_config.get("n_geo_users", 1) if env_config else 1
+
+        self.n_leo = 3
+        self.n_leo_users = 2
+        self.n_geo = 1
+        self.n_geo_users = 2
 
         # Register env spec if missing (useful for SB3 compatibility)
         if not hasattr(self, 'spec') or self.spec is None:
@@ -22,11 +27,9 @@ class CogSatDSAEnv(gym.Env):
         # Observation space structure
         self.observation_space = Dict({
             "utc_time": Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.int64),
-            "leo_pos": Box(low=-np.inf, high=np.inf, shape=(self.n_leo,), dtype=np.float64),
-            "leo_rssi": Box(low=-np.inf, high=np.inf, shape=(self.n_leo * self.n_leo_users,), dtype=np.float64),
-            "leo_sinr": Box(low=-np.inf, high=np.inf, shape=(self.n_leo * self.n_leo_users,), dtype=np.float64),
-            "geo_rssi": Box(low=-np.inf, high=np.inf, shape=(self.n_geo * self.n_geo_users,), dtype=np.float64),
-            "geo_sinr": Box(low=-np.inf, high=np.inf, shape=(self.n_geo * self.n_geo_users,), dtype=np.float64),
+            "leo_pos": Box(low=-np.inf, high=np.inf, shape=(self.n_leo *2,), dtype=np.float64),
+            "geo_freq": Box(low=-np.inf, high=np.inf, shape=(self.n_geo), dtype=np.float64),
+            "leo_freq": Box(low=-np.inf, high=np.inf, shape=(self.n_leo,), dtype=np.float64),
         })
 
         self.terminated = False

@@ -303,6 +303,7 @@ for tIdx = 1:length(ts)
 
         % Add base frequency or frequency of GEO to the state
         snd_state.GeobaseFreq = baseFreq;
+        snd_state.time = datestr(t)
 
         for i = 1:leoNum
             % Get position in geographic coordinates (Latitude, Longitude)
