@@ -52,6 +52,7 @@ action_last = None
 value_last = None
 log_prob_last = None
 
+
 intial_obs = {
     "utc_time": np.array([0], dtype=np.int64),
     "leo_pos": np.random.randn(n_leo * 2).astype(np.float64),  # e.g., [x1, y1, x2, y2, x3, y3]
