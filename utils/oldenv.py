@@ -47,7 +47,8 @@ class CogSatEnv(gymnasium.Env):
         self.geoNum = int(self.eng.workspace['geoNum'])
         self.NumLeoUser = int(self.eng.workspace['NumLeoUser'])
         self.NumGeoUser = int(self.eng.workspace['NumGeoUser'])
-        self.reward = 0
+        self.curLEO_User_id = 0
+        self.reward = -32.4115512468957
 
         self.LeoChannels = int(self.eng.workspace['numChannels'])
         self.GeoChannels = int(self.eng.workspace['NumGeoUser'])
@@ -59,12 +60,12 @@ class CogSatEnv(gymnasium.Env):
             "utc_time": np.array([0], dtype=np.int64),
             "freq_lgs_leo": np.random.uniform(1.0, self.LeoChannels, size=(self.NumLeoUser,)).astype(np.int64),
             "freq_ggs_geo": np.random.uniform(1.0, self.GeoChannels, size=(self.NumGeoUser,)).astype(np.int64),
+            "leo_user_id": np.array([0], dtype=np.int64),
         }         
         
  
         # Define action and observation space
-        # self.action_space = gymnasium.spaces.Discrete(self.LeoChannels)  # Select a channel index for one LEO (for example)
-        self.action_space = gymnasium.spaces.MultiDiscrete([self.LeoChannels] * self.NumLeoUser)  # Select a channel index for each LEO user
+        self.action_space = gymnasium.spaces.Discrete(self.LeoChannels)  # Select a channel index for one LEO (for example)
 
 
         # Observation space structure
@@ -72,6 +73,7 @@ class CogSatEnv(gymnasium.Env):
             "utc_time": Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.int64),
             "freq_lgs_leo": Box(low=1, high=self.LeoChannels+1, shape=(self.NumLeoUser,), dtype=np.int64),
             "freq_ggs_geo": Box(low=1, high=self.GeoChannels+1, shape=(self.NumGeoUser,), dtype=np.int64),
+            "leo_user_id": Box(low=0, high=self.NumLeoUser+1, shape=(1,), dtype=np.int64),
         })
     
     
@@ -105,6 +107,7 @@ class CogSatEnv(gymnasium.Env):
         cur_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
         cur_obs["freq_lgs_leo"] = np.array(self.LEOFreqAlloc[:,self.tIndex], dtype=np.int64)
         cur_obs["freq_ggs_geo"] = np.array(self.GEOFreqAlloc[:,self.tIndex], dtype=np.int64)
+        cur_obs["leo_user_id"] = np.array([self.curLEO_User_id], dtype=np.int64)
         # Log current observation
 
         logging.info("self.tIndex: %s",self.tIndex)
@@ -114,7 +117,6 @@ class CogSatEnv(gymnasium.Env):
 
         # Log freq_lgs_leo
         logging.info("freq_lgs_leo: %s", cur_obs["freq_lgs_leo"].tolist())
-        logging.info("freq_ggs_geo: %s", cur_obs["freq_ggs_geo"].tolist())
 
         # (Optional) Validate against observation_space
         assert self.observation_space.contains(cur_obs), "cur_obs doesn't match the observation space!"
@@ -128,56 +130,48 @@ class CogSatEnv(gymnasium.Env):
         Apply action and return (observation, reward, terminated, truncated, info)
         """
 
-        # Action start from 0 and ends before self.LeoChannels, that means it is not included
-        # For example, if self.LeoChannels is 5, action can be 0, 1, 2, 3, or 4.
-        # This is because MATLAB uses 1-based indexing, so we need to convert it to 0-based indexing for Python.
 
-        #print("Action taken: ", action)
-        logging.info("=== Action Taken === %s", action)
-        action = action + 1 
-        #print("After +1 Operation: Action taken: ", action)
-        logging.info("=== After +1 Operation: Action Taken === %s", action)
+
+
+        #print("*-"*50)
+        #print("Step Started")
         logging.info("=== Step Started ===")
-
-
         # Access the variable from MATLAB workspace
         # Convert MATLAB array to NumPy array
         channel_list_leo = np.array(self.eng.workspace['ChannelListLeo'])
+
         Serv_idxLEO = np.array(self.eng.workspace['Serv_idxLEO'])
+        self.cur_leo_sat_id = int(Serv_idxLEO[self.curLEO_User_id, self.tIndex]) - 1
 
         self.tIndex = int(self.tIndex)
+        
+
+        #print("Action taken: ", action)
+        logging.info("=== Action Taken === %s", action)
+
+        #print("Current LEO User ID: ", self.curLEO_User_id)
+        logging.info("=== Current LEO User ID === %s", self.curLEO_User_id)
+
+        #print("self.tIndex: ", self.tIndex)
         logging.info("=== Current Time Index === %s", self.tIndex)
 
-
-        # Store original values for comparison
-        before_vals = []
-        for i in range(self.NumLeoUser):
-            sat = Serv_idxLEO[i, self.tIndex].astype(int) - 1
-            before_vals.append(channel_list_leo[i, sat, self.tIndex])
-
-        # Now do the assignment 
-        for i in range(self.NumLeoUser):
-            sat = Serv_idxLEO[i, self.tIndex].astype(int) - 1
-            channel_list_leo[i, sat, self.tIndex] = action[i]
-
-        # Compare
-        for i in range(self.NumLeoUser):
-            sat = Serv_idxLEO[i, self.tIndex].astype(int) - 1
-            #print(f"User {i}: Before = {before_vals[i]}, After = {channel_list_leo[i, sat, self.tIndex]}")
-            logging.info(f"User {i}: Before = {before_vals[i]}, After = {channel_list_leo[i, sat, self.tIndex]}")
+        #print("Current LEO Satellite ID: ", self.cur_leo_sat_id)
+        logging.info("=== Current LEO Satellite ID === %s", self.cur_leo_sat_id)
 
 
+        # Action start from 0 and ends before self.LeoChannels, that means it is not included
+        # For example, if self.LeoChannels is 5, action can be 0, 1, 2, 3, or 4.
+        # This is because MATLAB uses 1-based indexing, so we need to convert it to 0-based indexing for Python.
+        action = int(action) + 1 # Ensure action is an integer 
 
+
+        channel_list_leo[self.curLEO_User_id, self.cur_leo_sat_id, self.tIndex] = int(action)
         self.eng.workspace['ChannelListLeo'] = matlab.double(channel_list_leo)
 
-
+        #print("Updated ChannelListLeo: ", np.array(self.eng.workspace['ChannelListLeo'])[self.curLEO_User_id, self.cur_leo_sat_id, self.tIndex])
 
 
         self.eng.eval("stepScenario", nargout=0)
-        FreqAlloc = np.array(self.eng.workspace['FreqAlloc'])
-        logging.info("=== FreqAlloc === %s",FreqAlloc[:,self.tIndex])
-
-
         next_observation = self.get_state_from_matlab()     
         
         #print("Next Observation: ", next_observation)
@@ -205,8 +199,8 @@ class CogSatEnv(gymnasium.Env):
         logging.info("=== SINR === %s", SINR_of_LEO_users)
         logging.info("=== Throughput === %s", Thrpt_of_LEO_users)
 
-        # # Option 1
-        # reward = np.sum(SINR_of_LEO_users)
+        # Option 1
+        reward = np.sum(SINR_of_LEO_users)
         
         # # Option 2
         # reward = np.sum(np.log10(SINR_of_LEO_users))
@@ -214,26 +208,23 @@ class CogSatEnv(gymnasium.Env):
         # # Option 3
         # reward = np.sum(Thrpt_of_LEO_users)
 
-        # Option 4
-        reward = np.sum(np.log10(Thrpt_of_LEO_users))
+        # # Option 4
+        # reward = np.sum(np.log10(Thrpt_of_LEO_users))
 
         self.reward = reward
         #print("Reward: ", reward)
         logging.info("=== Reward === %s", reward)
 
+        self.curLEO_User_id += 1
 
-
-
-        self.tIndex += 1
-        if self.tIndex >= self.timelength:
-            terminated = True
-            #print("Episode finished after {} timesteps".format(self.tIndex))
-            logging.info("=== Episode finished after %s timesteps ===", self.tIndex)
-            self.mat_filename = "A2C"
-            filename = f"DQN_workspace_Saved_data_{self.mat_filename}.mat"
-            save_cmd = f"save('{filename}')"
-            self.eng.eval(save_cmd, nargout=0)
-            self.eng.eval("P08_SaveData", nargout=0)
+        if self.curLEO_User_id >= self.NumLeoUser:
+            self.curLEO_User_id = 0
+            self.tIndex += 1
+            if self.tIndex >= self.timelength:
+                terminated = True
+                #print("Episode finished after {} timesteps".format(self.tIndex))
+                logging.info("=== Episode finished after %s timesteps ===", self.tIndex)
+                self.eng.eval("P08_SaveData", nargout=0)
 
         info = {}
 
@@ -255,42 +246,15 @@ class CogSatEnv(gymnasium.Env):
 
         self.tIndex = 0
         self.done = 0
+        self.curLEO_User_id = 0
 
         observation = self.get_state_from_matlab()
         #print("++++===== ENV RESET+++===")
  
         return observation, {}
-
-    def save_env_state(self):
-        """
-        Saves the current environment state, including MATLAB workspace variables.
-        """
-        return {
-            "tIndex": self.tIndex,
-            "ChannelListLeo": np.array(self.eng.workspace["ChannelListLeo"]),
-        }
-
-    def restore_env_state(self, state):
-        """
-        Restores the environment state from the saved state dictionary.
-        """
-        # Restore tIndex
-        self.tIndex = state["tIndex"]
-
-        # Restore MATLAB workspace variables
-        self.eng.workspace["ChannelListLeo"] = matlab.double(state["ChannelListLeo"].tolist())
-        self.eng.workspace["FreqAlloc"] = matlab.double(state["FreqAlloc"].tolist())
-
-        # Sync observation state
-        self.intial_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
-        self.intial_obs["freq_lgs_leo"] = np.array(state["FreqAlloc"][:self.NumLeoUser, self.tIndex], dtype=np.int64)
-        self.intial_obs["freq_ggs_geo"] = np.array(state["FreqAlloc"][self.NumLeoUser:self.NumLeoUser+ self.NumGeoUser, self.tIndex], dtype=np.int64)
-
-        logging.info("=== Environment Restored to tIndex %s ===", self.tIndex)
-
  
     def render(self):
-        pass
+        print("Rendering is handled in MATLAB viewer.")
  
     def close(self):
         #print("Saving MATLAB Data.")

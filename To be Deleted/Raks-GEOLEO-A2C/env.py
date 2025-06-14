@@ -1,43 +1,79 @@
 import gymnasium
 from gymnasium.spaces import Discrete, Box, Dict, MultiDiscrete
 import numpy as np
-import pandas as pd
 import random
-import logging
 
-
-from utils.settings import channelFreqs as FREQUENCY
-from utils.settings import n_leo, n_geo, n_leo_users, n_geo_users
-
+import geointeference
+import leointeference
+import pathloss
+from leo import *
+from geo import *
+from leouser import *
+import turtle
 import math
 
-from utils.df_preprocess import get_df_processed
+# 1 pixel = 5 km
 
+FREQUENCY = {0: "red", 1:"orange", 2: "magenta", 3: "green", 4:"blue", 5:"purple", 6:"pink", 7:'aqua', 8:'khaki', 9:'mistyrose'}
 
-global df_obs_space 
-df_obs_space = pd.Dataframe()
-
-class CogSatDSAEnv(gymnasium.Env):
+class LeoGeoEnv(gymnasium.Env):
     # env_config=None, render_mode=None added to match with SB3 configurations
     # to use with Ray RLlib "self, env_config" is enough
     def __init__(self, env_config=None, render_mode=None):
-        super(CogSatDSAEnv, self).__init__()
+        super(LeoGeoEnv, self).__init__()
         if not hasattr(self, 'spec') or self.spec is None:
-            self.spec = gymnasium.envs.registration.EnvSpec("CogSatDSAEnv-v1")
+            self.spec = gymnasium.envs.registration.EnvSpec("LeoGeoEnv-v3.1")
+        self.geo_user_int_threshold = 0
+        self.leo_user_SINR_threshold = 5
+
         # Actions
-        # Channel Freq - 10 frequencies with 0 as None
-        self.action_space = MultiDiscrete([11]*4)
+        self.action_space = MultiDiscrete([10]*14)
 
         # Observation space
         self.observation_space = Dict({
-            "utc_time": Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.int64),
-            "leo_pos": Box(low=-np.inf, high=np.inf, shape=(n_leo,), dtype=np.float64),
-            "leo_rssi": Box(low=-np.inf, high=np.inf, shape=(n_leo*n_leo_users,), dtype=np.float64),
-            "leo_sinr": Box(low=-np.inf, high=np.inf, shape=(n_leo*n_leo_users,), dtype=np.float64),
-            "geo_rssi": Box(low=-np.inf, high=np.inf, shape=(n_geo*n_geo_users,), dtype=np.float64),            
-            "geo_sinr": Box(low=-np.inf, high=np.inf, shape=(n_geo*n_geo_users,), dtype=np.float64),
+            "time_step": Box(low=0, high=500, shape=(1,), dtype=np.int64),
+            "beam_positions": Box(low=-1000, high=1000, shape=(28,), dtype=np.float64),
+            "previous_actions": Box(low=0, high=9, shape=(14,), dtype=np.int64)
         })
-        
+
+        self.leo_speed = 1.508
+        self.leo_step = 0  # to define an angular movement
+
+        # define interacting screen size & variables related to screen
+        self.screen = turtle.Screen()
+        self.screen.setup(800, 800)
+        self.screen.title("LEO GEO CoExisting Use Case")
+        # self.screen.tracer(0)
+        self.screen_edge = 450  # to stop the simulation from moving beyond the define edge
+
+        # geo users
+        self.geo_system = GeoBeams()
+
+        # LEOs
+        self.leo1_direction = 90
+        self.leo1 = LEOTurtle(x=-285, y=285, direction=self.leo1_direction)
+        self.leo1_xy = self.leo1.get_coordinates()
+
+        self.leo2_direction = 0
+        self.leo2 = LEOTurtle(x=-285, y=-285, direction=self.leo2_direction)
+        self.leo2_xy = self.leo2.get_coordinates()
+
+        # LEOs
+        self.leo3_direction = 90
+        self.leo3 = LEOTurtle(x=-525, y=525, direction=self.leo3_direction)
+        self.leo3_xy = self.leo3.get_coordinates()
+
+        self.leo4_direction = 0
+        self.leo4 = LEOTurtle(x=-525, y=-525, direction=self.leo4_direction)
+        self.leo4_xy = self.leo4.get_coordinates()
+
+        # LEO users
+        self.leo_users = LeoUserConfig(l1_all_turtles=self.leo1.all_turtles, l2_all_turtles=self.leo2.all_turtles,\
+                                       l3_all_turtles=self.leo3.all_turtles, l4_all_turtles=self.leo4.all_turtles)
+        self.leo1_users = len(self.leo_users.LEO_A_USER_COORDINATES)
+        self.leo2_users = len(self.leo_users.LEO_B_USER_COORDINATES)
+
+        self.time_step = 0
 
         self.terminated = False
 
@@ -45,30 +81,48 @@ class CogSatDSAEnv(gymnasium.Env):
         if seed is not None:
             np.random.seed(seed)
 
+        self.leo_step = 0  # to define an angular movement
+        self.time_step = 0 # reset the time counter
         self.terminated = False
 
         # Observation space
         # Apply actions for each agent, return observations, rewards, dones, and optional info
-        # observation = {
-        #     "utc_time": np.array([self.utc_time], dtype=np.int64),
-        #     "beam_positions": np.random.uniform(low=-1000, high=1000, size=(28,)),
-        #     "previous_actions": np.random.randint(low=0, high=9, size=(14,), dtype=np.int64)
-        # }
-
-        df_obs_space = get_df_processed()
-        
         observation = {
-            "utc_time": np.array([df_obs_space['Time'].iloc[0]], dtype=np.int64),
+            "time_step": np.array([self.time_step], dtype=np.int64),
             "beam_positions": np.random.uniform(low=-1000, high=1000, size=(28,)),
             "previous_actions": np.random.randint(low=0, high=9, size=(14,), dtype=np.int64)
         }
 
+        for leo_beam in range(7):
+            for beam, l1_xy in zip(range(7), self.leo1_xy):
+                self.leo1.all_turtles[beam].penup()
+                self.leo1.all_turtles[beam].goto(l1_xy)
+                self.leo1.all_turtles[leo_beam].setheading(self.leo1_direction)
+                self.leo1.all_turtles[leo_beam].pendown()
+
+            for beam, l2_xy in zip(range(7), self.leo2_xy):
+                self.leo2.all_turtles[beam].penup()
+                self.leo2.all_turtles[beam].goto(l2_xy)
+                self.leo2.all_turtles[leo_beam].setheading(self.leo2_direction)
+                self.leo2.all_turtles[leo_beam].pendown()
+
+            for beam, l3_xy in zip(range(7), self.leo3_xy):
+                self.leo3.all_turtles[beam].penup()
+                self.leo3.all_turtles[beam].goto(l3_xy)
+                self.leo3.all_turtles[leo_beam].setheading(self.leo3_direction)
+                self.leo3.all_turtles[leo_beam].pendown()
+
+            for beam, l4_xy in zip(range(7), self.leo4_xy):
+                self.leo4.all_turtles[beam].penup()
+                self.leo4.all_turtles[beam].goto(l4_xy)
+                self.leo4.all_turtles[leo_beam].setheading(self.leo4_direction)
+                self.leo4.all_turtles[leo_beam].pendown()
 
         return observation, {}
 
     def save_env_state(self):
         state = {
-            'utc_time': self.utc_time,
+            'time_step': self.time_step,
             'leo1_positions': [(turtle.xcor(), turtle.ycor()) for turtle in self.leo1.all_turtles],
             'leo2_positions': [(turtle.xcor(), turtle.ycor()) for turtle in self.leo2.all_turtles],
             'leo3_positions': [(turtle.xcor(), turtle.ycor()) for turtle in self.leo3.all_turtles],
@@ -91,7 +145,7 @@ class CogSatDSAEnv(gymnasium.Env):
         return state
 
     def restore_env_state(self, state):
-        self.utc_time = state['utc_time']
+        self.time_step = state['time_step']
 
         for turtle, pos, heading, pen in zip(self.leo1.all_turtles, state['leo1_positions'], state['leo1_directions'],
                                              state['leo1_pen']):
@@ -139,7 +193,7 @@ class CogSatDSAEnv(gymnasium.Env):
 
         self.leo1.move(distance, angle=(-45+self.leo_step))
         self.leo2.move(distance, angle=(45-self.leo_step))
-        if self.utc_time > 225:
+        if self.time_step > 225:
             self.leo3.move(distance, angle=(-45+self.leo_step))
             self.leo4.move(distance, angle=(45-self.leo_step))
         else:
@@ -157,11 +211,11 @@ class CogSatDSAEnv(gymnasium.Env):
             self.terminated = True
 
         self.leo_step += 0.005   # define the intensity of angle
-        self.utc_time += 1
-        # print(f'env time step {self.utc_time}')
+        self.time_step += 1
+        # print(f'env time step {self.time_step}')
 
         observation = {
-        "utc_time": np.array([self.utc_time], dtype=np.int64),
+        "time_step": np.array([self.time_step], dtype=np.int64),
         "beam_positions":np.array(leo_beam_positions, dtype=np.float64),
         "previous_actions": np.array(actions,dtype=np.int64)
         }
