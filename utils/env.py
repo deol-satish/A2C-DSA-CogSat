@@ -107,14 +107,14 @@ class CogSatEnv(gymnasium.Env):
         cur_obs["freq_ggs_geo"] = np.array(self.GEOFreqAlloc[:,self.tIndex], dtype=np.int64)
         # Log current observation
 
-        logging.info("self.tIndex: %s",self.tIndex)
+        # logging.info("self.tIndex: %s",self.tIndex)
 
-        # Log utc_time
-        logging.info("utc_time: %s", cur_obs["utc_time"].tolist())
+        # # Log utc_time
+        # logging.info("utc_time: %s", cur_obs["utc_time"].tolist())
 
-        # Log freq_lgs_leo
-        logging.info("freq_lgs_leo: %s", cur_obs["freq_lgs_leo"].tolist())
-        logging.info("freq_ggs_geo: %s", cur_obs["freq_ggs_geo"].tolist())
+        # # Log freq_lgs_leo
+        # logging.info("freq_lgs_leo: %s", cur_obs["freq_lgs_leo"].tolist())
+        # logging.info("freq_ggs_geo: %s", cur_obs["freq_ggs_geo"].tolist())
 
         # (Optional) Validate against observation_space
         assert self.observation_space.contains(cur_obs), "cur_obs doesn't match the observation space!"
@@ -132,12 +132,14 @@ class CogSatEnv(gymnasium.Env):
         # For example, if self.LeoChannels is 5, action can be 0, 1, 2, 3, or 4.
         # This is because MATLAB uses 1-based indexing, so we need to convert it to 0-based indexing for Python.
 
+        logging.info("=== Step Started ===")
+
         #print("Action taken: ", action)
-        logging.info("=== Action Taken === %s", action)
+        # logging.info("=== Action Taken === %s", action)
         action = action + 1 
         #print("After +1 Operation: Action taken: ", action)
         logging.info("=== After +1 Operation: Action Taken === %s", action)
-        logging.info("=== Step Started ===")
+        
 
 
         # Access the variable from MATLAB workspace
@@ -164,7 +166,7 @@ class CogSatEnv(gymnasium.Env):
         for i in range(self.NumLeoUser):
             sat = Serv_idxLEO[i, self.tIndex].astype(int) - 1
             #print(f"User {i}: Before = {before_vals[i]}, After = {channel_list_leo[i, sat, self.tIndex]}")
-            logging.info(f"User {i}: Before = {before_vals[i]}, After = {channel_list_leo[i, sat, self.tIndex]}")
+            #logging.info(f"User {i}: Before = {before_vals[i]}, After = {channel_list_leo[i, sat, self.tIndex]}")
 
 
 

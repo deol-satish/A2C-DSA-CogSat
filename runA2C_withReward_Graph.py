@@ -59,7 +59,7 @@ env_id = "CogSatEnv-v1"
 env = make_vec_env(env_id, n_envs=1, seed=seed)
 
 epoch_length = 62 ## got through experiment
-epoch_numbers = 2
+epoch_numbers = 500
 
 # Instantiate callback
 reward_logger = RewardLoggerCallback(epoch_length=epoch_length)
@@ -113,6 +113,3 @@ plt.grid(True)
 plt.legend()
 plt.tight_layout()
 plt.show()
-
-
-
