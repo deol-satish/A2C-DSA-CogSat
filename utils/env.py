@@ -7,6 +7,18 @@ import json
 import math
 from datetime import datetime, timedelta, timezone
 
+import os
+
+# Folder name
+saved_folder = "saved_data"
+
+# Create the folder if it doesn't exist
+if not os.path.exists(saved_folder):
+    os.makedirs(saved_folder)
+    print(f"Folder '{saved_folder}' created.")
+else:
+    print(f"Folder '{saved_folder}' already exists.")
+
 env_name = "CogSatEnv-v1"
 
 # Configure the logger
@@ -40,6 +52,11 @@ class CogSatEnv(gymnasium.Env):
         self.eng.eval("initialiseScenario", nargout=0)
         self.eng.eval("resetScenario", nargout=0)
 
+        
+
+
+        self.mat_filename = "A2C"
+
 
         self.tIndex = 0
         self.timelength = self.eng.eval("length(ts)", nargout=1)
@@ -59,7 +76,9 @@ class CogSatEnv(gymnasium.Env):
             "utc_time": np.array([0], dtype=np.int64),
             "freq_lgs_leo": np.random.uniform(1.0, self.LeoChannels, size=(self.NumLeoUser,)).astype(np.int64),
             "freq_ggs_geo": np.random.uniform(1.0, self.GeoChannels, size=(self.NumGeoUser,)).astype(np.int64),
-        }         
+        }
+        self.eng.eval("stepScenario", nargout=0)
+        self.save_npy_data('Baseline')        
         
  
         # Define action and observation space
@@ -73,6 +92,19 @@ class CogSatEnv(gymnasium.Env):
             "freq_lgs_leo": Box(low=1, high=self.LeoChannels+1, shape=(self.NumLeoUser,), dtype=np.int64),
             "freq_ggs_geo": Box(low=1, high=self.GeoChannels+1, shape=(self.NumGeoUser,), dtype=np.int64),
         })
+
+    def save_npy_data(self,extra_tag="Original"):
+        SINR = np.array(self.eng.workspace['SINR'])
+        Intf = np.array(self.eng.workspace['Intf'])
+        SINR_mW_dict = np.array(self.eng.workspace['SINR_mW_dict'])
+        Intf_mW_dict = np.array(self.eng.workspace['Intf_mW_dict'])
+        Thrpt = np.array(self.eng.workspace['Thrpt'])
+
+        np.save(f'{saved_folder}/{extra_tag}_SINR.npy', SINR)
+        np.save(f'{saved_folder}/{extra_tag}_Intf.npy', Intf)
+        np.save(f'{saved_folder}/{extra_tag}_SINR_mW_dict.npy', SINR_mW_dict)
+        np.save(f'{saved_folder}/{extra_tag}_Intf_mW_dict.npy', Intf_mW_dict)
+        np.save(f'{saved_folder}/{extra_tag}_Thrpt.npy', Thrpt)
     
     
     def get_matlab_ts(self):
@@ -207,17 +239,13 @@ class CogSatEnv(gymnasium.Env):
         logging.info("=== SINR === %s", SINR_of_LEO_users)
         logging.info("=== Throughput === %s", Thrpt_of_LEO_users)
 
-        # # Option 1
-        # reward = np.sum(SINR_of_LEO_users)
-        
-        # # Option 2
-        # reward = np.sum(np.log10(SINR_of_LEO_users))
+        reward = np.sum(np.log10(SINR_of_LEO_users))
 
-        # # Option 3
-        # reward = np.sum(Thrpt_of_LEO_users)
-
-        # Option 4
         reward = np.sum(np.log10(Thrpt_of_LEO_users))
+
+        reward = np.sum(np.log10(1/SINR_of_LEO_users))
+
+        reward = np.sum(np.log10(1/Thrpt_of_LEO_users))
 
         self.reward = reward
         #print("Reward: ", reward)
@@ -231,8 +259,8 @@ class CogSatEnv(gymnasium.Env):
             terminated = True
             #print("Episode finished after {} timesteps".format(self.tIndex))
             logging.info("=== Episode finished after %s timesteps ===", self.tIndex)
-            self.mat_filename = "A2C"
-            filename = f"DQN_workspace_Saved_data_{self.mat_filename}.mat"
+            self.save_npy_data(f'Episode_{self.episode_number}')
+            filename = f"{saved_folder}/{self.mat_filename}_workspace_Saved_data_Close.mat"
             save_cmd = f"save('{filename}')"
             self.eng.eval(save_cmd, nargout=0)
             self.eng.eval("P08_SaveData", nargout=0)
@@ -297,6 +325,9 @@ class CogSatEnv(gymnasium.Env):
     def close(self):
         #print("Saving MATLAB Data.")
         logging.info("=== Saving MATLAB Data ===")
-        self.eng.eval("P08_SaveData", nargout=0)
+        # self.eng.eval("P08_SaveData", nargout=0)
+        filename = f"{saved_folder}/{self.mat_filename}_workspace_Saved_data_Close.mat"
+        save_cmd = f"save('{filename}')"
+        self.eng.eval(save_cmd, nargout=0)
         self.eng.quit()
     

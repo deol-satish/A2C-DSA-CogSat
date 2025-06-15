@@ -1,5 +1,19 @@
 # %%
 # %% utils/callbacks.py
+
+import os
+
+# Folder name
+saved_folder = "saved_data"
+
+# Create the folder if it doesn't exist
+if not os.path.exists(saved_folder):
+    os.makedirs(saved_folder)
+    print(f"Folder '{saved_folder}' created.")
+else:
+    print(f"Folder '{saved_folder}' already exists.")
+
+
 import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -32,10 +46,11 @@ class RewardLoggerCallback(BaseCallback):
 
     def _on_training_end(self):
         # Save rewards to file (optional)
-        np.save("epoch_rewards.npy", self.epoch_rewards)
-        np.save("epoch_mean_rewards.npy", self.epoch_mean_rewards)
-        np.save("epoch_median_rewards.npy", self.epoch_median_rewards)
-        np.save("epoch_all_rewards.npy", self.epoch_all_rewards)
+        # Save the numpy arrays using f-strings
+        np.save(f'{saved_folder}/epoch_rewards.npy', self.epoch_rewards)
+        np.save(f'{saved_folder}/epoch_mean_rewards.npy', self.epoch_mean_rewards)
+        np.save(f'{saved_folder}/epoch_median_rewards.npy', self.epoch_median_rewards)
+        np.save(f'{saved_folder}/epoch_all_rewards.npy', self.epoch_all_rewards)
 
 
 # %%
@@ -44,6 +59,8 @@ from stable_baselines3 import A2C
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import CheckpointCallback
 from utils.env import CogSatEnv
+
+
 
 # set the seed
 seed = 42
@@ -84,7 +101,7 @@ env.close()
 import matplotlib.pyplot as plt
 import numpy as np
 
-rewards = np.load("epoch_rewards.npy")
+rewards = np.load(f'{saved_folder}/epoch_rewards.npy')
 
 plt.figure(figsize=(10, 6))
 plt.plot(rewards, label='Mean Reward per Epoch')
@@ -102,7 +119,7 @@ plt.show()
 import matplotlib.pyplot as plt
 import numpy as np
 
-rewards = np.load("epoch_median_rewards.npy")
+rewards = np.load(f'{saved_folder}/epoch_median_rewards.npy')
 
 plt.figure(figsize=(10, 6))
 plt.plot(rewards, label='Median Reward per Epoch')
