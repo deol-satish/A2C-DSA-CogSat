@@ -11,19 +11,25 @@ ChannelListGeo = nan(NumGS, geoNum, length(ts));
 LEOUsers = find(GSLEOFilter);  % e.g., 1:10
 GEOUsers = find(GSGEOFilter);  % e.g., 11:20
 % Only Assign Channels to Valid Users (LEO or GEO)
+
+rng(42);
+GEOFreq_rand = randperm(NumGeoUser, NumGeoUser)';
+
 for t = 1:length(ts)
     for s = 1:leoNum
         % ChannelListLeo(LEOUsers, s, t) = randperm(numChannels, NumLeoUser);
         ChannelListLeo(LEOUsers, s, t) = randsample(channelPool,length(LEOUsers),true);
     end
     for g = 1:geoNum
-        ChannelListGeo(GEOUsers, g, t) = randperm(NumGeoUser, NumGeoUser)';
+        ChannelListGeo(GEOUsers, g, t) = GEOFreq_rand;
     end
 end
 
 OriginalChannelListLeo = ChannelListLeo;  % Save original for later
 OriginalChannelListGeo = ChannelListGeo;  % Save original for later
 
+T = length(ts);
+LEO_LOC = NaN(NumGS, T, 2);  % [NumGS x T]
 
 %% Finding the serving LEO for each LEO GS (20 x 31)
 fprintf('Finding the serving LEO for each LEO GS...\n');
@@ -42,7 +48,20 @@ for t = 1:length(ts)
     for u = 1:NumGS
         if GSLEOFilter(u)
             s_serv = Serv_idxLEO(u, t);
+
+
+
             if s_serv > 0 && ~isnan(s_serv)
+                % Get lat/lon from geographic coordinate frame
+                [pos, ~] = states(leoSats(s_serv), ts(t), 'CoordinateFrame', 'geographic');
+        
+                % % Print values
+                % fprintf('GS: %d | Time: %s | LEO-%02d | Latitude: %.4f°, Longitude: %.4f°\n', ...
+                %     u,datestr(ts(t), 'yyyy-mm-dd HH:MM:SS'), s_serv, pos(1), pos(2));
+                % fprintf('=================================================================\n')
+
+                LEO_LOC(u,t,1) = pos(1);
+                LEO_LOC(u,t,2) = pos(2);
                 FreqAlloc(u, t) = ChannelListLeo(u, s_serv, t);
             end
         elseif GSGEOFilter(u)
@@ -53,3 +72,25 @@ for t = 1:length(ts)
         end
     end
 end
+
+
+% % Initialize
+% numTimeSteps = length(ts);
+% leoData(numTimeSteps, leoNum) = struct('Time', [], 'LEO_Num', [], 'Latitude', [], 'Longitude', []);
+% 
+% for t = 1:numTimeSteps
+%     for i = 1:leoNum
+%         % Get lat/lon from geographic coordinate frame
+%         [pos, ~] = states(leoSats(i), ts(t), 'CoordinateFrame', 'geographic');
+% 
+%         % Print values
+%         fprintf('Time: %s | LEO-%02d | Latitude: %.4f°, Longitude: %.4f°\n', ...
+%             datestr(ts(t), 'yyyy-mm-dd HH:MM:SS'), i, pos(1), pos(2));
+% 
+%         % Optional: Save if needed
+%         leoData(t, i).Time = ts(t);
+%         leoData(t, i).LEO_Num = i;
+%         leoData(t, i).Latitude = pos(1);
+%         leoData(t, i).Longitude = pos(2);
+%     end
+% end

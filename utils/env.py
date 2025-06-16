@@ -76,6 +76,8 @@ class CogSatEnv(gymnasium.Env):
             "utc_time": np.array([0], dtype=np.int64),
             "freq_lgs_leo": np.random.uniform(1.0, self.LeoChannels, size=(self.NumLeoUser,)).astype(np.int64),
             "freq_ggs_geo": np.random.uniform(1.0, self.GeoChannels, size=(self.NumGeoUser,)).astype(np.int64),
+            "leo_pos": np.random.uniform(0, 20, size=(self.NumLeoUser*2,)).astype(np.float32),
+            
         }
         self.eng.eval("stepScenario", nargout=0)
         self.save_npy_data('Baseline')        
@@ -91,6 +93,7 @@ class CogSatEnv(gymnasium.Env):
             "utc_time": Box(low=-np.inf, high=np.inf, shape=(1,), dtype=np.int64),
             "freq_lgs_leo": Box(low=1, high=self.LeoChannels+1, shape=(self.NumLeoUser,), dtype=np.int64),
             "freq_ggs_geo": Box(low=1, high=self.GeoChannels+1, shape=(self.NumGeoUser,), dtype=np.int64),
+            "leo_pos": Box(low=-np.inf, high=np.inf, shape=(self.NumLeoUser*2,), dtype=np.float32),
         })
 
     def save_npy_data(self,extra_tag="Original"):
@@ -137,6 +140,8 @@ class CogSatEnv(gymnasium.Env):
         cur_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
         cur_obs["freq_lgs_leo"] = np.array(self.LEOFreqAlloc[:,self.tIndex], dtype=np.int64)
         cur_obs["freq_ggs_geo"] = np.array(self.GEOFreqAlloc[:,self.tIndex], dtype=np.int64)
+        leo_loc = np.array(self.eng.workspace['LEO_LOC'])
+        cur_obs["leo_pos"] = np.array(leo_loc[0:self.NumLeoUser,self.tIndex].flatten(), dtype=np.float32)
         # Log current observation
 
         # logging.info("self.tIndex: %s",self.tIndex)
