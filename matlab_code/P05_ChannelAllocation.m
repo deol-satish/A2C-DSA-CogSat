@@ -72,25 +72,3 @@ for t = 1:length(ts)
         end
     end
 end
-
-
-% % Initialize
-% numTimeSteps = length(ts);
-% leoData(numTimeSteps, leoNum) = struct('Time', [], 'LEO_Num', [], 'Latitude', [], 'Longitude', []);
-% 
-% for t = 1:numTimeSteps
-%     for i = 1:leoNum
-%         % Get lat/lon from geographic coordinate frame
-%         [pos, ~] = states(leoSats(i), ts(t), 'CoordinateFrame', 'geographic');
-% 
-%         % Print values
-%         fprintf('Time: %s | LEO-%02d | Latitude: %.4f°, Longitude: %.4f°\n', ...
-%             datestr(ts(t), 'yyyy-mm-dd HH:MM:SS'), i, pos(1), pos(2));
-% 
-%         % Optional: Save if needed
-%         leoData(t, i).Time = ts(t);
-%         leoData(t, i).LEO_Num = i;
-%         leoData(t, i).Latitude = pos(1);
-%         leoData(t, i).Longitude = pos(2);
-%     end
-% end
