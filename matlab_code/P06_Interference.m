@@ -1,10 +1,6 @@
 fprintf('Interference calculation step...\n');
 T = length(ts);
 SINR = NaN(NumGS, T);  % [NumGS x T]
-Intf = NaN(NumGS, T);  % [NumGS x T]
-Thrpt = NaN(NumGS, T);  % [NumGS x T]
-SINR_mW_dict = NaN(NumGS, T);  % [NumGS x T]
-Intf_mW_dict = NaN(NumGS, T);  % [NumGS x T]
 
 for t = 1:T
     % PrxLEOt = ActualPrxLEO(:, :, t);      % [NumGS x LEO]
@@ -36,20 +32,35 @@ for t = 1:T
         %% Interference from LEO
         PintLEO_mW = 0;
         interferersLEO = [];  % <=== store interfering user indices
-        for s = 1:leoNum
-            for otherIdx = 1:NumGS
-                if otherIdx == userIdx || GSLEOFilter(otherIdx) == 0, continue; end
-                ch_other = ChannelListLeot(otherIdx, s);
-                if ch_other == ch_user
-                    Pint_dBm = PrxLEOt(userIdx, s);
-                    if ~isnan(Pint_dBm) && ~isinf(Pint_dBm)
-                        PintLEO_mW = PintLEO_mW + 10^(Pint_dBm / 10);
-                        interferersLEO(end+1) = otherIdx;
-                        % fprintf('Interferer Added: TimeIdx: %d, userIdx = %d , satelite_id = %d, otherIdx = %d, ch_other = %d, 10^(Pint_dBm / 10) = %.2f \n',t, userIdx,s, otherIdx , ch_other, 10^(Pint_dBm / 10)*1e8);  
-                    end
+
+        for otherIdx = 1:NumGS
+            if otherIdx == userIdx || GSLEOFilter(otherIdx) == 0, continue; end
+            other_s_serv = Serv_idxLEOt(otherIdx);
+            ch_other = ChannelListLeot(otherIdx, other_s_serv);
+            if ch_other == ch_user
+                Pint_dBm = PrxLEOt(userIdx, other_s_serv);
+                if ~isnan(Pint_dBm) && ~isinf(Pint_dBm)
+                    PintLEO_mW = PintLEO_mW + 10^(Pint_dBm / 10);
+                    interferersLEO(end+1) = otherIdx;  
+                    fprintf('Interferer Added: TimeIdx: %d, userIdx = %d , satelite_id = %d, otherIdx = %d, ch_other = %d, 10^(Pint_dBm / 10) = %.2f \n',t, userIdx,other_s_serv, otherIdx , ch_other, 10^(Pint_dBm / 10)*1e8);
                 end
             end
         end
+
+        % for s = 1:leoNum
+        %     for otherIdx = 1:NumGS
+        %         if otherIdx == userIdx || GSLEOFilter(otherIdx) == 0, continue; end
+        %         ch_other = ChannelListLeot(otherIdx, s);
+        %         if ch_other == ch_user
+        %             Pint_dBm = PrxLEOt(userIdx, s);
+        %             if ~isnan(Pint_dBm) && ~isinf(Pint_dBm)
+        %                 PintLEO_mW = PintLEO_mW + 10^(Pint_dBm / 10);
+        %                 interferersLEO(end+1) = otherIdx;  
+        %                 fprintf('Interferer Added: TimeIdx: %d, userIdx = %d , satelite_id = %d, otherIdx = %d, ch_other = %d, 10^(Pint_dBm / 10) = %.2f \n',t, userIdx,s, otherIdx , ch_other, 10^(Pint_dBm / 10)*1e8);
+        %             end
+        %         end
+        %     end
+        % end
         %% Interference from GEO
         PintGEO_mW = 0;
         interferersGEO = [];  % <=== store interfering user indices
@@ -74,11 +85,7 @@ for t = 1:T
         EbN0 = Psig_mW *1e-3 / (Rb * kb * TempK);
         EbN0dB = 10 * log10(EbN0);
         SINR_mW = Psig_mW / (PintTotal_mW + Noise_mW);
-        Thrpt(userIdx, t) = (ChannelBW * log2(1 + SINR_mW))/(1024*1024);  % Shannon capacity in mbits/s
         SINR(userIdx, t) = 10 * log10(SINR_mW);
-        SINR_mW_dict(userIdx, t) = SINR_mW;
-        Intf_mW_dict(userIdx, t) = PintTotal_mW;
-        Intf(userIdx, t) = Pint_totaldB;
         %% Print full debug info
         % fprintf('[t=%d] User %d → Channel %d: Psig=%.2f dBm, Interf=%.2f dBm, SINR=%.2f dB\n', ...
         %     t, userIdx, ch_user, Psig_dBm, Pint_totaldB, SINR(userIdx, t));
