@@ -1,6 +1,10 @@
 fprintf('Interference calculation step...\n');
 T = length(ts);
 SINR = NaN(NumGS, T);  % [NumGS x T]
+Intf = NaN(NumGS, T);  % [NumGS x T]
+Thrpt = NaN(NumGS, T);  % [NumGS x T]
+SINR_mW_dict = NaN(NumGS, T);  % [NumGS x T]
+Intf_mW_dict = NaN(NumGS, T);  % [NumGS x T]
 
 for t = 1:T
     % PrxLEOt = ActualPrxLEO(:, :, t);      % [NumGS x LEO]
@@ -85,7 +89,11 @@ for t = 1:T
         EbN0 = Psig_mW *1e-3 / (Rb * kb * TempK);
         EbN0dB = 10 * log10(EbN0);
         SINR_mW = Psig_mW / (PintTotal_mW + Noise_mW);
+        Thrpt(userIdx, t) = (ChannelBW * log2(1 + SINR_mW))/(1024*1024);  % Shannon capacity in mbits/s
         SINR(userIdx, t) = 10 * log10(SINR_mW);
+        SINR_mW_dict(userIdx, t) = SINR_mW;
+        Intf_mW_dict(userIdx, t) = PintTotal_mW;
+        Intf(userIdx, t) = Pint_totaldB;
         %% Print full debug info
         % fprintf('[t=%d] User %d → Channel %d: Psig=%.2f dBm, Interf=%.2f dBm, SINR=%.2f dB\n', ...
         %     t, userIdx, ch_user, Psig_dBm, Pint_totaldB, SINR(userIdx, t));
