@@ -251,11 +251,11 @@ class CogSatEnv(gymnasium.Env):
         logging.info("=== SINR === %s", SINR_of_LEO_users)
         logging.info("=== Throughput === %s", Thrpt_of_LEO_users)
 
-        reward = np.mean(np.log10(Thrpt_of_LEO_users))
+        reward = np.sum(np.log10(Thrpt_of_LEO_users))
 
-        reward = np.mean(np.log10(SINR_of_LEO_users))
+        reward = np.sum(np.log10(SINR_of_LEO_users))
 
-        reward = np.mean(np.log10(Thrpt_of_LEO_users)) -  num_repeated
+        reward = np.sum(np.log10(Thrpt_of_LEO_users)) -  num_repeated
 
         # reward = np.sum(np.log10(1/SINR_of_LEO_users))
 
