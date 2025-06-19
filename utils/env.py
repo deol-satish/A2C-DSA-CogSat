@@ -213,11 +213,18 @@ class CogSatEnv(gymnasium.Env):
 
 
         self.eng.eval("stepScenario", nargout=0)
+
+
+
+        next_observation = self.get_state_from_matlab()  
+
         FreqAlloc = np.array(self.eng.workspace['FreqAlloc'])
         logging.info("=== FreqAlloc === %s",FreqAlloc[:,self.tIndex])
+        # Example: FreqAlloc = np.array([...])
+        unique_values, counts = np.unique(FreqAlloc, return_counts=True)
 
-
-        next_observation = self.get_state_from_matlab()     
+        # Count how many values are repeated (i.e., count > 1)
+        num_repeated = np.sum(counts > 1)   
         
         #print("Next Observation: ", next_observation)
         logging.info("=== Next Observation === %s", next_observation)   
@@ -244,15 +251,12 @@ class CogSatEnv(gymnasium.Env):
         logging.info("=== SINR === %s", SINR_of_LEO_users)
         logging.info("=== Throughput === %s", Thrpt_of_LEO_users)
 
-        # reward = np.sum(np.log10(Thrpt_of_LEO_users))/self.NumLeoUser
-
         reward = np.sum(np.log10(Thrpt_of_LEO_users))
 
         # reward = np.sum(np.log10(SINR_of_LEO_users))
 
-        # reward = np.sum(np.log10(1/SINR_of_LEO_users))
+        # reward = np.sum(np.log10(Thrpt_of_LEO_users)) -  num_repeated
 
-        # reward = np.sum(np.log10(1/Thrpt_of_LEO_users))
 
         self.reward = reward
         #print("Reward: ", reward)
