@@ -22,8 +22,6 @@ P04_RxSimulation
 % load("Geometric")
 % load('Power');
 P05_ChannelAllocation
-
 % save('Data');
 %% Interference calculation
 P06_Interference
-

@@ -27,8 +27,3 @@ NumGeoUser = size(GsLocations,1)/2;     % 10 uesers each with seperate channel (
 NumGS = NumLeoUser + NumGeoUser;        % Total ground stations
 GSLEOFilter = logical([ones(NumLeoUser,1); zeros(NumGeoUser,1) ]);
 GSGEOFilter = logical([zeros(NumLeoUser,1); ones(NumGeoUser,1) ]);
-
-%% Convert to ECEF Cartesian coordinates (X, Y, Z in meters)
-[xECEFgs, yECEFgs, zECEFgs] = geodetic2ecef(E, cell2mat(GsLocations(:,2)), cell2mat(GsLocations(:,3)), 0);
-% Combine into one matrix for convenience
-GSECEF = [xECEFgs, yECEFgs, zECEFgs];  % 20 × 3 matrix
