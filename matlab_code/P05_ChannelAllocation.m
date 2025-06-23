@@ -14,8 +14,8 @@ rng(42);
 GEOFreq_rand = randperm(NumGeoUser, NumGeoUser)';
 for t = 1:length(ts)
     for s = 1:leoNum
-        % ChannelListLeo(LEOUsers, s, t) = randperm(numChannels, NumLeoUser);
-        ChannelListLeo(LEOUsers, s, t) = randsample(channelPool,length(LEOUsers),true);
+        ChannelListLeo(LEOUsers, s, t) = randperm(numChannels, NumLeoUser);
+        % ChannelListLeo(LEOUsers, s, t) = randsample(channelPool,length(LEOUsers),true);
     end
     for g = 1:geoNum
         ChannelListGeo(GEOUsers, g, t) = GEOFreq_rand;
