@@ -50,6 +50,7 @@ class CogSatEnv(gymnasium.Env):
 
         # Initialize the MATLAB scenario
         self.eng.eval("initialiseScenario", nargout=0)
+        self.eng.eval("P06_Interference", nargout=0)
         self.eng.eval("resetScenario", nargout=0)
 
         
@@ -253,6 +254,7 @@ class CogSatEnv(gymnasium.Env):
         logging.info("=== Interference === %s", Interference_to_geo_users*1e8)
         logging.info("=== SINR === %s", SINR_of_LEO_users)
         logging.info("=== Throughput === %s", Thrpt_of_LEO_users)
+        logging.info("=== num_repeated === %s", num_repeated)
 
         # reward = np.sum(np.log10(SINR_of_LEO_users)) -  num_repeated
 
