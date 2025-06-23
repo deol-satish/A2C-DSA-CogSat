@@ -10,6 +10,7 @@ Re = E.SemimajorAxis;
 latMin = -45; latMax = -10;
 lonMin = 110; lonMax = 155;
 geoscatter(cell2mat(GsLocations(:,2)), cell2mat(GsLocations(:,3)), 30, 'k', 'filled'); hold on
+geobasemap streets;
 % Loop over all satellites
 numSats = size(satPos, 2);
 for satIdx = 1:numSats
@@ -82,7 +83,7 @@ geobasemap streets;
 ax = gca; grid on; ax.Box = 'on';
 set(gca, 'LooseInset', get(gca, 'TightInset'), 'FontSize', 14);
 ax.LineWidth = 1;
-saveLocation = './'
+saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
 exportgraphics(h_Fig, fullfile(saveLocation, 'Figure12.png'), 'Resolution', 600)
 %% Plot cities coverage from specific satellite
 % Step 1: Pick satellite and time
@@ -123,6 +124,34 @@ geoscatter(lat_inbeam, lon_inbeam, 100, 'g', 'filled', 'MarkerEdgeColor', 'k');
 geobasemap streets
 title(sprintf('In-Beam Ground Stations (θ ≤ %.1f°)', beamwidth_deg));
 legend('In-Beam Station', 'Location', 'best')
+%% Plot parabolic Antenna gain
+% Parameters
+c = 3e8;             % Speed of light
+fc = 12e9;           % Frequency [Hz]
+lambda = c / fc;     % Wavelength
+D = 0.6;             % Dish diameter [m]
+eff = 0.6;           % Aperture efficiency
+theta = linspace(-10, 10, 1000);  % Off-boresight angle [degrees]
+
+% Compute max gain (scalar)
+Gmax = 10 * log10( (pi * D * fc / c)^2 * eff );
+
+% Beamwidth estimation
+theta_3dB = 70 * lambda / D;  % Approximate 3dB beamwidth in degrees
+k = 1.391;                    % Scaling factor
+
+% Antenna pattern (sinc-squared approximation)
+G = Gmax + 10 * log10( (sinc(k * theta / theta_3dB)).^2 );
+
+% Plot
+figure;
+plot(theta, G, 'LineWidth', 2);
+xlabel('Off-boresight angle [deg]');
+ylabel('Gain [dBi]');
+title('Parabolic Antenna Pattern');
+grid on;
+xlim([-10 10]);
+ylim([Gmax - 40, Gmax + 1]);
 %% Plot different antenna gain pattern
 % Parameters
 theta = linspace(0, deg2rad(15), 300);   % Off-nadir angle in radians
@@ -241,7 +270,7 @@ end
 ax=gca;
 grid on;ax.Box = 'on';set(gca,'LooseInset',get(gca,'TightInset'),'FontSize',12);
 ax.LineWidth = 1;  % Set box (axis) thickness to 1.5 points
-saveLocation = './'
+saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
 Filename = fullfile(saveLocation, 'Figure4');
 print(h_Fig, '-dpng','-r600',Filename)
 % print(h_Fig, '-depsc','-r600',Filename)

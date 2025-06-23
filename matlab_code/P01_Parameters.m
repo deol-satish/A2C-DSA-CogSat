@@ -37,7 +37,7 @@ geoPower = 10 * log10(300e3);    % GEO Tx power: 300 W → ~24.77 dBW
 leoPower = 10 * log10(5e3);      % LEO Tx power: 5 W → ~36.98 dBm
 %% Antenna Parameters (Dish Diameter in meters)
 leo.Antenna = 0.6;              % LEO satellite antenna diameter
-leo.psi = deg2rad(15);           % LEO satellite beamwidth in radian (θ3dB=2∘,5∘,10∘)
+leo.psi = deg2rad(10);           % LEO satellite beamwidth in radian (θ3dB=2∘,5∘,10∘)
 % If θ3dB=10∘, the footprint radius on Earth is only about: r≈h⋅tan⁡(θ3dB)=1200 km⋅tan⁡(10∘)≈212 km
 leo.GainMax = 40;               % Max gain in dB assume parabolic antenna 30–45 dB
 leo.AntShape = 0.15;             % Antenna shaping parameter (adjusts mainlobe width) - larger a => narrow beam

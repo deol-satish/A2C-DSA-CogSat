@@ -68,7 +68,7 @@ end
 ax = gca; grid on;
 ax.Box = 'on';
 set(gca, 'LooseInset', get(gca, 'TightInset'));
-saveLocation = './'
+saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
 Filename = fullfile(saveLocation, 'Figure3');
 print(h_Fig, '-dpng','-r600', Filename);
 %% Plot elvation of a signal pass satellite
@@ -181,7 +181,7 @@ legend;
 ax = gca; grid on;
 ax.Box = 'on';
 set(gca, 'LooseInset', get(gca, 'TightInset'));
-saveLocation = './'
+saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
 Filename = fullfile(saveLocation, 'Figure3');
 print(h_Fig, '-dpng','-r600', Filename);
 %% Plot ANtenna Gain
