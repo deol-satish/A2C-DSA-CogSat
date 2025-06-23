@@ -67,7 +67,7 @@ class CogSatEnv(gymnasium.Env):
         self.reward = 0
 
         self.LeoChannels = int(self.eng.workspace['numChannels'])
-        self.GeoChannels = int(self.eng.workspace['NumGeoUser'])
+        self.GeoChannels = int(self.eng.workspace['numChannels'])
 
         self.ChannelListLeo = self.eng.workspace['ChannelListLeo']
         self.ChannelListGeo = self.eng.workspace['ChannelListGeo']
@@ -152,6 +152,9 @@ class CogSatEnv(gymnasium.Env):
         # # Log freq_lgs_leo
         # logging.info("freq_lgs_leo: %s", cur_obs["freq_lgs_leo"].tolist())
         # logging.info("freq_ggs_geo: %s", cur_obs["freq_ggs_geo"].tolist())
+
+        # logging.info("cur_obs: %s", cur_obs)
+        # print("cur_obs",cur_obs)
 
         # (Optional) Validate against observation_space
         assert self.observation_space.contains(cur_obs), "cur_obs doesn't match the observation space!"
