@@ -7,3 +7,5 @@ maps.mat
 ITURDigitalMaps.tar.gz
 __pycache__/a2c_dsa.cpython-312.pyc
 train_log.txt
+/saved_data
+/a2c_dsa_tensorboard

@@ -222,8 +222,8 @@ class CogSatEnv(gymnasium.Env):
 
         next_observation = self.get_state_from_matlab()  
 
-        FreqAlloc = np.array(self.eng.workspace['FreqAlloc'])
-        logging.info("=== FreqAlloc === %s",FreqAlloc[:,self.tIndex])
+        FreqAlloc = np.array(self.eng.workspace['FreqAlloc'])[:,self.tIndex]
+        logging.info("=== FreqAlloc === %s",FreqAlloc)
         # Example: FreqAlloc = np.array([...])
         unique_values, counts = np.unique(FreqAlloc, return_counts=True)
 
