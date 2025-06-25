@@ -65,7 +65,7 @@ Random allocation for the channels ensuring GEO has fixed channels per the numbe
 
 Finding the serving station based on the maximum recevied power and ensure to avoid the signal from outside the local horizon of the GS based on the elevation angle.
 
-7. Interference Calculation (P06_Interference)
+7. Interference Calculation (P06_Intf_Eval)
 
 Computes SINR using knowledge of channel reuse and neighboring interference.
 

@@ -26,7 +26,7 @@ P04_RxSimulation
 P05_ChannelAllocation
 % save('Data');
 %% Interference calculation
-P06_Interference
+P06_Intf_Eval
 % SINRBW2 = SINR;
 % save('SINRBW2',"SINRBW2");
 % SINRBW5 = SINR;

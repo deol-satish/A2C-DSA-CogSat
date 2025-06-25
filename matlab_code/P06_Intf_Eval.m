@@ -5,6 +5,7 @@ Intf = NaN(NumGS, T);  % [NumGS x T]
 Thrpt = NaN(NumGS, T);  % [NumGS x T]
 SINR_mW_dict = NaN(NumGS, T);  % [NumGS x T]
 Intf_mW_dict = NaN(NumGS, T);  % [NumGS x T]
+SE = zeros(1, T);
 
 for t = 1:T
     % PrxLEOt = ActualPrxLEO(:, :, t);      % [NumGS x LEO]
@@ -90,4 +91,45 @@ for t = 1:T
             fprintf('    ↳ GEO Interferers: %s\n', mat2str(interferersGEO));
         end
     end
+    % Initialize containers for channels actively used at this time step
+    activeChannels = [];    % Active links with service
+    channelUsage = zeros(1, numChannels);  % Channel usage counter
+    
+    % Loop over users and count actual, non-interfered usage
+    for userIdx = 1:NumGS
+        isLEOUser = GSLEOFilter(userIdx);
+        isGEOUser = GSGEOFilter(userIdx);
+    
+        if isLEOUser
+            s_serv = Serv_idxLEOt(userIdx);
+            if s_serv == 0 || isnan(s_serv), continue; end
+            ch_user = ChannelListLeot(userIdx, s_serv);
+            Prx_dBm = PrxLEOt(userIdx, s_serv);
+        elseif isGEOUser
+            s_serv = Serv_idxGEOt(userIdx);
+            if s_serv == 0 || isnan(s_serv), continue; end
+            ch_user = ChannelListGeot(userIdx, s_serv);
+            Prx_dBm = PrxGEOt(userIdx, s_serv);
+        else
+            continue;
+        end
+    
+        % Only count channels with active links above noise floor
+        if ~isnan(Prx_dBm) && Prx_dBm > ThermalNoisedBm
+            activeChannels(end+1) = ch_user;
+            channelUsage(ch_user) = channelUsage(ch_user) + 1;
+        end
+    end
+    
+    % Determine how many channels are reused (i.e., interfered)
+    numUsed = nnz(channelUsage > 0);
+    numInterfered = nnz(channelUsage > 1);
+    
+    % Spectral Efficiency
+    SE(t) = (numUsed - numInterfered) / numChannels;
+    SE(t) = max(0, min(1, SE(t)));  % clip to [0,1] if needed
+    
+    fprintf('[t=%d] Active Channels: %d, Interfered: %d → SE = %.3f\n', ...
+            t, numUsed, numInterfered, SE(t));
+
 end

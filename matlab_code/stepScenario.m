@@ -16,6 +16,6 @@ for t = 1:length(ts)
     end
 end
 
-P06_Interference
+P06_Intf_Eval
 
 % P07_Plotting

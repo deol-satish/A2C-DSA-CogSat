@@ -19,8 +19,6 @@ for t = 1:length(ts)
     % end
 end
 
-OriginalChannelListLeo = ChannelListLeo;  % Save original for later
-OriginalChannelListGeo = ChannelListGeo;  % Save original for later
 
 T = length(ts);
 LEO_LOC = NaN(NumGS, T, 2);  % [NumGS x T]

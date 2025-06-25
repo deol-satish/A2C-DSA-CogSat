@@ -50,7 +50,7 @@ class CogSatEnv(gymnasium.Env):
 
         # Initialize the MATLAB scenario
         self.eng.eval("initialiseScenario", nargout=0)
-        self.eng.eval("P06_Interference", nargout=0)
+        self.eng.eval("P06_Intf_Eval", nargout=0)
         self.eng.eval("resetScenario", nargout=0)
 
         
@@ -103,12 +103,14 @@ class CogSatEnv(gymnasium.Env):
         SINR_mW_dict = np.array(self.eng.workspace['SINR_mW_dict'])
         Intf_mW_dict = np.array(self.eng.workspace['Intf_mW_dict'])
         Thrpt = np.array(self.eng.workspace['Thrpt'])
+        SE = np.array(self.eng.workspace['SE'])
 
         np.save(f'{saved_folder}/{extra_tag}_SINR.npy', SINR)
         np.save(f'{saved_folder}/{extra_tag}_Intf.npy', Intf)
         np.save(f'{saved_folder}/{extra_tag}_SINR_mW_dict.npy', SINR_mW_dict)
         np.save(f'{saved_folder}/{extra_tag}_Intf_mW_dict.npy', Intf_mW_dict)
         np.save(f'{saved_folder}/{extra_tag}_Thrpt.npy', Thrpt)
+        np.save(f'{saved_folder}/{extra_tag}_SE.npy', Thrpt)
     
     
     def get_matlab_ts(self):
@@ -229,6 +231,21 @@ class CogSatEnv(gymnasium.Env):
 
         # Count how many values are repeated (i.e., count > 1)
         num_repeated = np.sum(counts > 1)   
+
+        # Split into LEO (first 10) and GEO (last 10)
+        leo_vals = FreqAlloc[:10]
+        geo_vals = FreqAlloc[10:]
+
+        # Find common elements
+        common_vals = np.intersect1d(leo_vals, geo_vals)
+
+        # Count
+        num_common = len(common_vals)
+
+        # print("Common values:", common_vals)
+
+        logging.info("=== Count of Common values === %s",num_common)
+
         
         #print("Next Observation: ", next_observation)
         logging.info("=== Next Observation === %s", next_observation)   
@@ -238,7 +255,7 @@ class CogSatEnv(gymnasium.Env):
 
         SINR = np.array(self.eng.workspace['SINR_mW_dict'])
         Intf = np.array(self.eng.workspace['Intf_mW_dict'])
-        Thrpt = np.array(self.eng.workspace['Thrpt'])
+        Thrpt = np.array(self.eng.workspace['Thrpt'])/(1024*1024)
 
 
         
@@ -261,7 +278,12 @@ class CogSatEnv(gymnasium.Env):
         # reward = np.mean(Thrpt_of_LEO_users) - (0.1*(np.std(Thrpt_of_LEO_users))) - (2*num_repeated)
         # reward = np.mean(SINR_of_LEO_users) - (0.1*(np.std(SINR_of_LEO_users))) - (2*num_repeated)
 
-        reward = np.sum(np.log10(Thrpt_of_LEO_users)) -  num_repeated
+
+        # print("Count of common values:", num_common)
+
+        #reward = np.sum(np.log10(Thrpt_of_LEO_users)) -  num_repeated
+
+        reward = np.sum(np.log10(Thrpt_of_LEO_users)) -  num_common
 
 
         self.reward = reward
