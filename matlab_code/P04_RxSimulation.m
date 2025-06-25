@@ -7,7 +7,7 @@ ThermalNoisedBm = 10 * log10(kb * TempK * ChannelBW) +30; % Noise in dBm
 %% Define sat gain based on the antenna length - parabolic antenna case (1)
 % GtxLEO = 10* log10((pi * leo.Antenna *fc /c)^2 * eff);
 %% 2D Sinc^2 Antenna Gain Pattern => Beamwidth control case (2)
-% leo.AntShape = 0.573 * leo.psi + 0.1;  % leo.psi in radians
+leo.AntShape = 0.573 * leo.psi + 0.1;  % leo.psi in radians
 GtxLEO = leo.GainMax + 10 * log10(( abs(sinc(leo.AntShape*leotheta / leo.psi)).^2 ) ...
            .* ( abs(  sinc(leo.AntShape*leoAzimuth / leo.psi)).^2 ));
 %% GEO Tx Gain
