@@ -110,7 +110,7 @@ class CogSatEnv(gymnasium.Env):
         np.save(f'{saved_folder}/{extra_tag}_SINR_mW_dict.npy', SINR_mW_dict)
         np.save(f'{saved_folder}/{extra_tag}_Intf_mW_dict.npy', Intf_mW_dict)
         np.save(f'{saved_folder}/{extra_tag}_Thrpt.npy', Thrpt)
-        np.save(f'{saved_folder}/{extra_tag}_SE.npy', Thrpt)
+        np.save(f'{saved_folder}/{extra_tag}_SE.npy', SE)
     
     
     def get_matlab_ts(self):
