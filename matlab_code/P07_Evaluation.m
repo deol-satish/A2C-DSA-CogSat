@@ -1,7 +1,11 @@
-%%
+%% Metrics
 fprintf('Interference calculation step...\n');
 T = length(ts);
 SINR = NaN(NumGS, T);  % [NumGS x T]
+Intf = NaN(NumGS, T);  % [NumGS x T]
+Thrpt = NaN(NumGS, T);  % [NumGS x T]
+SINR_mW_dict = NaN(NumGS, T);  % [NumGS x T]
+Intf_mW_dict = NaN(NumGS, T);  % [NumGS x T]
 SE = zeros(1, T);
 
 for t = 1:T
@@ -71,9 +75,12 @@ for t = 1:T
         EbN0 = Psig_mW *1e-3 / (Rb * kb * TempK);
         EbN0dB = 10 * log10(EbN0);
         SINR_mW = Psig_mW / (PintTotal_mW + Noise_mW);
-        % Thrpt(userIdx, t) = (ChannelBW * log2(1 + SINR_mW));  % Shannon capacity in mbits/s
-        Thrpt(userIdx, t) = log2(1 + SINR_mW);  % Shannon capacity in mbits/s
+        % Thrpt(userIdx, t) = (ChannelBW * log2(1 + SINR_mW));  % Shannon capacity in bits/s
+        Thrpt(userIdx, t) = log2(1 + SINR_mW);  % Shannon capacity in bpHz
         SINR(userIdx, t) = 10 * log10(SINR_mW);
+        SINR_mW_dict(userIdx, t) = SINR_mW;
+        Intf_mW_dict(userIdx, t) = PintTotal_mW;
+        Intf(userIdx, t) = Pint_totaldB;
         %% Print full debug info
         fprintf('[t=%d] User %d → Channel %d: Psig=%.2f dBm, Interf=%.2f dBm, SINR=%.2f dB\n', ...
             t, userIdx, ch_user, Psig_dBm, Pint_totaldB, SINR(userIdx, t));
@@ -85,11 +92,9 @@ for t = 1:T
             fprintf('    ↳ GEO Interferers: %s\n', mat2str(interferersGEO));
         end
     end
-    % Initialize containers for channels actively used at this time step
-    activeChannels = [];    % Active links with service
+    % Initialize containers for channel usage
     channelUsage = zeros(1, numChannels);  % Channel usage counter
     
-    % Loop over users and count actual, non-interfered usage
     for userIdx = 1:NumGS
         isLEOUser = GSLEOFilter(userIdx);
         isGEOUser = GSGEOFilter(userIdx);
@@ -108,22 +113,21 @@ for t = 1:T
             continue;
         end
     
-        % Only count channels with active links above noise floor
-        if ~isnan(Prx_dBm) && Prx_dBm > ThermalNoisedBm
-            activeChannels(end+1) = ch_user;
+        % Only count if SINR was computed
+        if ~isnan(SINR(userIdx, t))
             channelUsage(ch_user) = channelUsage(ch_user) + 1;
         end
     end
     
-    % Determine how many channels are reused (i.e., interfered)
-    numUsed = nnz(channelUsage > 0);
-    numInterfered = nnz(channelUsage > 1);
+    % Count useful and interfered channels
+    numUseful = nnz(channelUsage == 1);     % used by only one user
+    numInterfered = nnz(channelUsage > 1);  % used by multiple users
     
-    % Spectral Efficiency
-    SE(t) = (numUsed - numInterfered) / numChannels;
-    SE(t) = max(0, min(1, SE(t)));  % clip to [0,1] if needed
+    % Spectral Efficiency (as per image)
+    SE(t) = (numUseful - numInterfered) / numChannels;
+    SE(t) = max(0, min(1, SE(t)));  % clip to [0,1]
     
-    fprintf('[t=%d] Active Channels: %d, Interfered: %d → SE = %.3f\n', ...
-            t, numUsed, numInterfered, SE(t));
+    fprintf('[t=%d] Useful: %d, Interfered: %d → SE = %.3f\n', ...
+            t, numUseful, numInterfered, SE(t));
 
 end
