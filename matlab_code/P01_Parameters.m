@@ -7,10 +7,13 @@ TempK = 293;                      % System noise temperature [K]
 %% General Simulation Parameters
 fprintf('Initializing simulation parameters and GS locations...\n');
 startTime = datetime(2025, 4, 10, 12, 0, 0);  % Simulation start
-duration_sec = 1 * 3600;                   % 30 min simulation in seconds
+duration_sec = 3 * 3600;                   % 30 min simulation in seconds
 sampleTime = 30;                             % Time step in seconds
 stopTime = startTime + seconds(duration_sec);
 ts = startTime:seconds(sampleTime):stopTime;
+%% Users
+NumLeoUser = 10;
+NumGeoUser = 10;
 %% Frequencies (Hz)
 fc = 11.5e9;                       % Base frequency in Ku-band (10.7-12.7 GHz)
 numChannels = 15;                  % Number of available channels
@@ -35,9 +38,10 @@ geo.mu = 0;                        % True anamoly
 %% Transmit Power (in dBW)
 geoPower = 10 * log10(300e3);    % GEO Tx power: 300 W → ~24.77 dBW
 leoPower = 10 * log10(5e3);      % LEO Tx power: 5 W → ~36.98 dBm
+SINRThreshold = 10;
 %% Antenna Parameters (Dish Diameter in meters)
 leo.Antenna = 0.6;              % LEO satellite antenna diameter
-leo.psi = deg2rad(10);           % LEO satellite beamwidth in radian (θ3dB=2∘,5∘,10∘)
+leo.psi = deg2rad(8);           % LEO satellite beamwidth in radian (θ3dB=2∘,5∘,10∘)
 % If θ3dB=10∘, the footprint radius on Earth is only about: r≈h⋅tan⁡(θ3dB)=1200 km⋅tan⁡(10∘)≈212 km
 leo.GainMax = 40;               % Max gain in dB assume parabolic antenna 30–45 dB
 leo.AntShape = 0.15;             % Antenna shaping parameter (adjusts mainlobe width) - larger a => narrow beam

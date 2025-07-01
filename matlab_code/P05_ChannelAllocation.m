@@ -1,7 +1,8 @@
 %% Random channel allocation case (1)
-fprintf('Channel allocation...\n');
+%% Random channel allocation
+% fprintf('Channel allocation...\n');
 % Define number of channels based of number of LEO and GEO users + 5 extra
-% Each GEO users will always have its own channel
+% Each GEO users will always have its fixed allocation
 % LEO users will always share all channel randemoly assigned with unique channels per timestep
 channelPool = 1:numChannels;
 % numChannels = 5 + NumLeoUser + NumGeoUser;
@@ -13,20 +14,11 @@ GEOUsers = find(GSGEOFilter);  % e.g., 11:20
 for t = 1:length(ts)
     for s = 1:leoNum
         ChannelListLeo(LEOUsers, s, t) = randperm(numChannels, NumLeoUser);
+        % ChannelListLeo(LEOUsers, s, t) = randsample(channelPool,length(LEOUsers),true);
     end
-    % for g = 1:geoNum
-    %     ChannelListGeo(GEOUsers, g, t) = randperm(NumGeoUser, NumGeoUser)';
-    % end
-end
-
-
-T = length(ts);
-LEO_LOC = NaN(NumGS, T, 2);  % [NumGS x T]
-
-for g = 1:geoNum
-    for u = 1:NumGeoUser
-        userID = GEOUsers(u);              % User index (e.g., 11 → 20)
-        ChannelListGeo(userID, g, :) = u;  % Assign channel u for all time steps
+    for g = 1:geoNum
+        % ChannelListGeo(GEOUsers, g, t) = randperm(NumGeoUser, NumGeoUser)';
+        ChannelListGeo(GEOUsers, g, t) = (1:NumGeoUser)';
     end
 end
 %% Optimized channel allocation using Greedy Max-SINR with GEO Awareness case (2)

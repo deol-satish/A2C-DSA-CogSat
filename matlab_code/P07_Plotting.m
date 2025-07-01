@@ -28,7 +28,7 @@ geobasemap streets
 ax=gca;
 grid on;ax.Box = 'on';set(gca,'LooseInset',get(gca,'TightInset'),'FontSize',12);
 ax.LineWidth = 1;  % Set box (axis) thickness to 1.5 points
-saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
+saveLocation = './Figures';
 Filename = fullfile(saveLocation, 'Figure4');
 % print(h_Fig, '-dpng','-r600',Filename)
 %%  Footprint Mapping
@@ -93,7 +93,7 @@ text(NumGeoUser + NumLeoUser/2, max(meanSINR)-0.2, 'GEO Users', 'HorizontalAlign
 ax=gca;
 grid on;ax.Box = 'on';set(gca,'LooseInset',get(gca,'TightInset'),'FontSize',10);
 ax.LineWidth = 1;  % Set box (axis) thickness to 1.5 points
-% saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
+% saveLocation = './Figures';
 % Filename = fullfile(saveLocation, 'Figure2');
 % print(h_Fig, '-dpng','-r600',Filename)
 %% Compute average SINR per user (Random Allocation + Beamwidth Comparison)
@@ -133,7 +133,7 @@ ax.Box = 'on';
 set(ax, 'LooseInset', get(ax, 'TightInset'), 'FontSize', 14);
 ax.LineWidth = 1;
 grid on;
-saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
+saveLocation = './Figures';
 % Filename = fullfile(saveLocation, 'Figure11');
 exportgraphics(h_Fig, fullfile(saveLocation, 'Figure11.png'), 'Resolution', 600)
 %% Plot Random allocation vs optimised allocation
@@ -168,7 +168,7 @@ ax.Box = 'on';
 set(ax, 'LooseInset', get(ax, 'TightInset'), 'FontSize', 14);
 ax.LineWidth = 1;
 grid on;
-saveLocation = 'C:\Users\nermi\iCloudDrive\0. Work\27. SmartSAT Project\3. Paper\Figures';
+saveLocation = './Figures';
 % Filename = fullfile(saveLocation, 'Figure11');
 exportgraphics(h_Fig, fullfile(saveLocation, 'Figure10.png'), 'Resolution', 600)
 

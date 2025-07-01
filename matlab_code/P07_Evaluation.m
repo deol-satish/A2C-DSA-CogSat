@@ -2,15 +2,10 @@
 fprintf('Interference calculation step...\n');
 T = length(ts);
 SINR = NaN(NumGS, T);  % [NumGS x T]
-Intf = NaN(NumGS, T);  % [NumGS x T]
 Thrpt = NaN(NumGS, T);  % [NumGS x T]
-SINR_mW_dict = NaN(NumGS, T);  % [NumGS x T]
-Intf_mW_dict = NaN(NumGS, T);  % [NumGS x T]
 SE = zeros(1, T);
-
+Noise_mW = 10^(ThermalNoisedBm / 10);
 for t = 1:T
-    % PrxLEOt = ActualPrxLEO(:, :, t);      % [NumGS x LEO]
-    % PrxGEOt = ActualPrxGEO(:, :, t);
     PrxLEOt = PrxLEO(:, :, t);              % [NumGS x LEO]
     PrxGEOt = PrxGEO(:, :, t);              % [NumGS x GEO]
     ChannelListLeot = ChannelListLeo(:, :, t);
@@ -27,11 +22,13 @@ for t = 1:T
             if s_serv == 0 || isnan(s_serv), continue; end
             ch_user = ChannelListLeot(userIdx, s_serv);
             Psig_dBm = PservLEOt(userIdx);
+            Psig_mW = 10^(Psig_dBm / 10);
         elseif isGEOUser
             s_serv = Serv_idxGEOt(userIdx);
             if s_serv == 0 || isnan(s_serv), continue; end
             ch_user = ChannelListGeot(userIdx, s_serv);
             Psig_dBm = PservGEOt(userIdx);
+            Psig_mW = 10^(Psig_dBm / 10);
         else
             continue;  % undefined user
         end
@@ -45,8 +42,12 @@ for t = 1:T
                 if ch_other == ch_user
                     Pint_dBm = PrxLEOt(userIdx, s);
                     if ~isnan(Pint_dBm) && ~isinf(Pint_dBm)
-                        PintLEO_mW = PintLEO_mW + 10^(Pint_dBm / 10);
-                        interferersLEO(end+1) = otherIdx;  
+                        testInterf_mW = PintLEO_mW + 10^(Pint_dBm/10);
+                        SINR_test = Psig_mW / (testInterf_mW + Noise_mW);
+                        if 10*log10(SINR_test) < SINRThreshold
+                            PintLEO_mW = testInterf_mW;
+                            interferersLEO(end+1) = otherIdx;
+                        end
                     end
                 end
             end
@@ -61,8 +62,12 @@ for t = 1:T
                 if ch_other == ch_user
                     Pint_dBm = PrxGEOt(userIdx, g);
                     if ~isnan(Pint_dBm) && ~isinf(Pint_dBm)
-                        PintGEO_mW = PintGEO_mW + 10^(Pint_dBm / 10);
-                        interferersGEO(end+1) = otherIdx;  % <=== save
+                        testInterf_mW = PintGEO_mW + 10^(Pint_dBm/10);
+                        SINR_test = Psig_mW / (testInterf_mW + Noise_mW);
+                        if 10*log10(SINR_test) < SINRThreshold
+                            PintGEO_mW = testInterf_mW;
+                            interferersGEO(end+1) = otherIdx;
+                        end
                     end
                 end
             end
@@ -70,17 +75,12 @@ for t = 1:T
         %% Final SINR Computation
         PintTotal_mW = PintLEO_mW + PintGEO_mW;
         Pint_totaldB = 10 * log10(PintTotal_mW + eps);  % avoid log10(0)
-        Psig_mW = 10^(Psig_dBm / 10);
-        Noise_mW = 10^(ThermalNoisedBm / 10);
         EbN0 = Psig_mW *1e-3 / (Rb * kb * TempK);
         EbN0dB = 10 * log10(EbN0);
         SINR_mW = Psig_mW / (PintTotal_mW + Noise_mW);
         % Thrpt(userIdx, t) = (ChannelBW * log2(1 + SINR_mW));  % Shannon capacity in bits/s
         Thrpt(userIdx, t) = log2(1 + SINR_mW);  % Shannon capacity in bpHz
         SINR(userIdx, t) = 10 * log10(SINR_mW);
-        SINR_mW_dict(userIdx, t) = SINR_mW;
-        Intf_mW_dict(userIdx, t) = PintTotal_mW;
-        Intf(userIdx, t) = Pint_totaldB;
         %% Print full debug info
         fprintf('[t=%d] User %d → Channel %d: Psig=%.2f dBm, Interf=%.2f dBm, SINR=%.2f dB\n', ...
             t, userIdx, ch_user, Psig_dBm, Pint_totaldB, SINR(userIdx, t));
@@ -92,42 +92,46 @@ for t = 1:T
             fprintf('    ↳ GEO Interferers: %s\n', mat2str(interferersGEO));
         end
     end
-    % Initialize containers for channel usage
-    channelUsage = zeros(1, numChannels);  % Channel usage counter
-    
+    % Build list of users per channel
+    channelUsers = cell(1, numChannels);
     for userIdx = 1:NumGS
         isLEOUser = GSLEOFilter(userIdx);
         isGEOUser = GSGEOFilter(userIdx);
-    
         if isLEOUser
             s_serv = Serv_idxLEOt(userIdx);
             if s_serv == 0 || isnan(s_serv), continue; end
             ch_user = ChannelListLeot(userIdx, s_serv);
-            Prx_dBm = PrxLEOt(userIdx, s_serv);
         elseif isGEOUser
             s_serv = Serv_idxGEOt(userIdx);
             if s_serv == 0 || isnan(s_serv), continue; end
             ch_user = ChannelListGeot(userIdx, s_serv);
-            Prx_dBm = PrxGEOt(userIdx, s_serv);
         else
             continue;
         end
-    
-        % Only count if SINR was computed
+        % Only if SINR was computed
         if ~isnan(SINR(userIdx, t))
-            channelUsage(ch_user) = channelUsage(ch_user) + 1;
+            channelUsers{ch_user}(end+1) = userIdx;
         end
     end
-    
-    % Count useful and interfered channels
-    numUseful = nnz(channelUsage == 1);     % used by only one user
-    numInterfered = nnz(channelUsage > 1);  % used by multiple users
-    
-    % Spectral Efficiency (as per image)
-    SE(t) = (numUseful - numInterfered) / numChannels;
-    SE(t) = max(0, min(1, SE(t)));  % clip to [0,1]
-    
-    fprintf('[t=%d] Useful: %d, Interfered: %d → SE = %.3f\n', ...
-            t, numUseful, numInterfered, SE(t));
+    % Now count useful vs interfered
+    numUseful = 0;
+    numInterfered = 0;
+    for ch = 1:numChannels
+        usersOnCh = channelUsers{ch};
+        if isempty(usersOnCh)
+            continue;
+        end
+        % Check if ANY user on this channel is below SINR threshold
+        if any(SINR(usersOnCh, t) < SINRThreshold)
+            numInterfered = numInterfered + 1;
+        else
+            numUseful = numUseful + 1;
+        end
+    end
+    % Spectral Efficiency
+    SE(t) = numUseful / numChannels;
+    fprintf('[t=%d] Useful Channels: %d, Interfered: %d → SE = %.3f\n', ...
+        t, numUseful, numInterfered, SE(t));
+
 
 end

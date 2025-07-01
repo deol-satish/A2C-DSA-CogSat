@@ -22,7 +22,7 @@ for i = 1:geoNum
 end
 %% Create ground stations
 fprintf('Setting up ground stations in Australia...\n');
-for i = 1:size(GsLocations,1)
+for i = 1:NumGS
     GS{i} = groundStation(sc, GsLocations{i,2}, GsLocations{i,3}, 'Name', GsLocations{i,1});
 end
 %% Find elevatin and range for LEO

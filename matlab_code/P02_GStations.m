@@ -20,10 +20,20 @@ GsLocations = {
     'Katherine',    -14.4667, 132.2667;
     'Wollongong',   -34.4244, 150.8939;
     'Townsville',   -19.2500, 146.8167;
-    'Toowoomba',    -27.5667, 151.9500};
+    'Toowoomba',    -27.5667, 151.9500
+    'Rockhampton',  -23.3750, 150.5117;
+    'Ballarat',     -37.5622, 143.8503;
+    'Mackay',       -21.1410, 149.1860;
+    'Albury',       -36.0737, 146.9135;
+    'Shepparton',   -36.3805, 145.3992;
+    'Bunbury',      -33.3271, 115.6417;
+    'Geraldton',    -28.7682, 114.6144;
+    'Alice_Springs',-23.6980, 133.8807;
+    'Port_Macquarie',-31.4300, 152.9080;
+    'Mildura',      -34.1855, 142.1625};
 
-NumLeoUser = size(GsLocations,1)/2;     % 10 uesers each with seperate channel (10 Channels)
-NumGeoUser = size(GsLocations,1)/2;     % 10 uesers each with seperate channel (10 Channels)
+% NumLeoUser = size(GsLocations,1)/2;     % 10 uesers each with seperate channel (10 Channels)
+% NumGeoUser = size(GsLocations,1)/2;     % 10 uesers each with seperate channel (10 Channels)
 NumGS = NumLeoUser + NumGeoUser;        % Total ground stations
 GSLEOFilter = logical([ones(NumLeoUser,1); zeros(NumGeoUser,1) ]);
 GSGEOFilter = logical([zeros(NumLeoUser,1); ones(NumGeoUser,1) ]);

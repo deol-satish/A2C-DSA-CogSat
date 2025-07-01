@@ -25,18 +25,5 @@ P04_RxSimulation
 % load('Power');
 P05_ChannelAllocation
 % save('Data');
-%% Interference calculation
-P06_Intf_Eval
-% SINRBW2 = SINR;
-% save('SINRBW2',"SINRBW2");
-% SINRBW5 = SINR;
-% save('SINRBW5',"SINRBW5");
-% SINRBW8 = SINR;
-% save('SINRBW8',"SINRBW8");
-% SINRBW10 = SINR;
-% save('SINRBW10',"SINRBW10");
-% SINRBW15 = SINR;
-% save('SINRBW15',"SINRBW15");
-% SINROP = SINR;
-% save('SINROP',"SINROP");
-% 
+%% Evaluation => Interference, throughput, spectral efficiency
+P07_Evaluation
