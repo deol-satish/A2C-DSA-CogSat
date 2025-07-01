@@ -53,10 +53,15 @@ class CogSatEnv(gymnasium.Env):
         self.eng.eval("P06_Intf_Eval", nargout=0)
         self.eng.eval("resetScenario", nargout=0)
 
+
+        
+
         
 
 
         self.mat_filename = "A2C"
+
+        
 
 
         self.tIndex = 0
@@ -283,7 +288,7 @@ class CogSatEnv(gymnasium.Env):
 
         #reward = np.sum(np.log10(Thrpt_of_LEO_users)) -  num_repeated
 
-        reward = np.sum(np.log10(Thrpt_of_LEO_users)) -  num_common
+        reward = np.sum(np.log10(SINR_of_LEO_users)) -  num_repeated
 
 
         self.reward = reward
