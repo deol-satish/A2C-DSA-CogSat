@@ -153,8 +153,10 @@ class CogSatEnv(gymnasium.Env):
         leo_loc = np.array(self.eng.workspace['LEO_LOC'])
         cur_obs["leo_pos"] = np.array(leo_loc[0:self.NumLeoUser,self.tIndex].flatten(), dtype=np.float32)
         # Log current observation
-
-        # logging.info("self.tIndex: %s",self.tIndex)
+        t = np.array(self.eng.workspace['t'])
+        logging.info("===get_state_from_matlab: t from matlab: %s ===",t)
+        logging.info("===get_state_from_matlab: t from python env: %s ===",self.tIndex)
+        logging.info("get_state_from_matlab:self.FreqAlloc: %s",self.FreqAlloc)
 
         # # Log utc_time
         # logging.info("utc_time: %s", cur_obs["utc_time"].tolist())
@@ -163,8 +165,8 @@ class CogSatEnv(gymnasium.Env):
         # logging.info("freq_lgs_leo: %s", cur_obs["freq_lgs_leo"].tolist())
         # logging.info("freq_ggs_geo: %s", cur_obs["freq_ggs_geo"].tolist())
 
-        # logging.info("cur_obs: %s", cur_obs)
-        # print("cur_obs",cur_obs)
+        logging.info("cur_obs: %s", cur_obs)
+        print("cur_obs",cur_obs)
 
         # (Optional) Validate against observation_space
         assert self.observation_space.contains(cur_obs), "cur_obs doesn't match the observation space!"
@@ -185,6 +187,13 @@ class CogSatEnv(gymnasium.Env):
         # This is because MATLAB uses 1-based indexing, so we need to convert it to 0-based indexing for Python.
 
         logging.info("=== Step Started ===")
+        t = np.array(self.eng.workspace['t'])
+        logging.info("===step: t from matlab: %s ===",t)
+        logging.info("=== step: t from python env: %s ===",self.tIndex)
+        logging.info("step: self.FreqAlloc: %s",self.FreqAlloc)
+        
+
+
 
         #print("Action taken: ", action)
         # logging.info("=== Action Taken === %s", action)
@@ -299,11 +308,14 @@ class CogSatEnv(gymnasium.Env):
         #print("Reward: ", reward)
         logging.info("=== Reward === %s", reward)
 
+        
+
 
 
 
         self.tIndex += 1
-        if self.tIndex >= self.timelength:
+        self.eng.workspace['t'] = int(self.tIndex) + 1
+        if self.tIndex >= self.timelength - 1:
             terminated = True
             #print("Episode finished after {} timesteps".format(self.tIndex))
             logging.info("=== Episode finished after %s timesteps ===", self.tIndex)
@@ -331,7 +343,9 @@ class CogSatEnv(gymnasium.Env):
         logging.info("=== Resetting Environment for Episode %s ===", self.episode_number)
         super().reset(seed=seed) 
         # Reset the scenario
-        # self.eng.eval("resetScenario", nargout=0)
+        self.eng.eval("resetScenario", nargout=0)
+        self.eng.eval("stepScenario", nargout=0)
+        self.eng.eval("resetScenario", nargout=0)
 
         self.tIndex = 0
         self.done = 0
@@ -340,6 +354,8 @@ class CogSatEnv(gymnasium.Env):
         self.ep_step_duration = self.ep_end_time - self.ep_start_time
         logging.info("=== Episode Time taken for timestep: %.4f seconds ===", self.ep_step_duration)
         print("=== Episode Time taken for timestep: %.4f seconds ===", self.ep_step_duration)
+
+        self.ep_start_time = time.time()
 
         observation = self.get_state_from_matlab()
         #print("++++===== ENV RESET+++===")

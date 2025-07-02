@@ -23,5 +23,17 @@ P04_RxSimulation
 % load('Power');
 P05_ChannelAllocation
 % save('Data');
+
+
 %% Interference calculation Next
 T = length(ts);
+SINR = NaN(NumGS, T);  % [NumGS x T]
+Intf = NaN(NumGS, T);  % [NumGS x T]
+Thrpt = NaN(NumGS, T);  % [NumGS x T]
+SINR_mW_dict = NaN(NumGS, T);  % [NumGS x T]
+Intf_mW_dict = NaN(NumGS, T);  % [NumGS x T]
+Noise_mW = 10^(ThermalNoisedBm / 10);
+SE = zeros(1, T);
+
+FreqAlloc = NaN(NumGS, length(ts));  % Initialize
+t = 1
