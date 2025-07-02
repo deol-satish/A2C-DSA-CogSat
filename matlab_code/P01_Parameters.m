@@ -7,7 +7,7 @@ TempK = 293;                      % System noise temperature [K]
 %% General Simulation Parameters
 fprintf('Initializing simulation parameters and GS locations...\n');
 startTime = datetime(2025, 4, 10, 12, 0, 0);  % Simulation start
-duration_sec = 3 * 3600;                   % 30 min simulation in seconds
+duration_sec = 1 * 3600;                   % 30 min simulation in seconds
 sampleTime = 30;                             % Time step in seconds
 stopTime = startTime + seconds(duration_sec);
 ts = startTime:seconds(sampleTime):stopTime;
