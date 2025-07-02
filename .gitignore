@@ -10,3 +10,4 @@ train_log.txt
 /saved_data
 /a2c_dsa_tensorboard
 *.pyc
+*.mat

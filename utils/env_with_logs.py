@@ -48,47 +48,40 @@ class CogSatEnv(gymnasium.Env):
 
         self.eng.addpath(r'./matlab_code', nargout=0)
 
-        # Initialize the MATLAB scenario
+        # Initialize the MATLAB scenario and Save Baseline
         self.eng.eval("initialiseScenario", nargout=0)
         self.eng.eval("P06_Intf_Eval", nargout=0)
         self.eng.eval("resetScenario", nargout=0)
+        self.save_npy_data('Baseline')       
+
+        filename = f"{saved_folder}/Baseline_workspace_Saved_data.mat"
+        save_cmd = f"save('{filename}')"
+        self.eng.eval(save_cmd, nargout=0)
 
 
-        
-
-        
-
-
-        self.mat_filename = "A2C"
-
-        
+        self.mat_filename = "A2C"       
 
 
         self.tIndex = 0
         self.timelength = self.eng.eval("length(ts)", nargout=1)
-        self.leoNum = int(self.eng.workspace['leoNum'])
-        self.geoNum = int(self.eng.workspace['geoNum'])
         self.NumLeoUser = int(self.eng.workspace['NumLeoUser'])
         self.NumGeoUser = int(self.eng.workspace['NumGeoUser'])
         self.reward = 0
-
         self.LeoChannels = int(self.eng.workspace['numChannels'])
         self.GeoChannels = int(self.eng.workspace['numChannels'])
 
 
-        self.intial_obs = {
+        self.cur_obs = {
             "utc_time": np.array([0], dtype=np.int64),
             "freq_lgs_leo": np.random.uniform(1.0, self.LeoChannels, size=(self.NumLeoUser,)).astype(np.int64),
             "freq_ggs_geo": np.random.uniform(1.0, self.GeoChannels, size=(self.NumGeoUser,)).astype(np.int64),
             "leo_pos": np.random.uniform(0, 20, size=(self.NumLeoUser*2,)).astype(np.float32),
             
         }
-        self.eng.eval("stepScenario", nargout=0)
-        self.save_npy_data('Baseline')        
+      
         
  
         # Define action and observation space
-        # self.action_space = gymnasium.spaces.Discrete(self.LeoChannels)  # Select a channel index for one LEO (for example)
         self.action_space = gymnasium.spaces.MultiDiscrete([self.LeoChannels] * self.NumLeoUser)  # Select a channel index for each LEO user
 
 
@@ -145,18 +138,16 @@ class CogSatEnv(gymnasium.Env):
         self.LEOFreqAlloc = self.FreqAlloc[:10,:]
         self.GEOFreqAlloc = self.FreqAlloc[10:20,:]
 
-        cur_obs = self.intial_obs.copy()
-
-        cur_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
-        cur_obs["freq_lgs_leo"] = np.array(self.LEOFreqAlloc[:,self.tIndex], dtype=np.int64)
-        cur_obs["freq_ggs_geo"] = np.array(self.GEOFreqAlloc[:,self.tIndex], dtype=np.int64)
+        self.cur_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
+        self.cur_obs["freq_lgs_leo"] = np.array(self.LEOFreqAlloc[:,self.tIndex], dtype=np.int64)
+        self.cur_obs["freq_ggs_geo"] = np.array(self.GEOFreqAlloc[:,self.tIndex], dtype=np.int64)
         leo_loc = np.array(self.eng.workspace['LEO_LOC'])
-        cur_obs["leo_pos"] = np.array(leo_loc[0:self.NumLeoUser,self.tIndex].flatten(), dtype=np.float32)
+        self.cur_obs["leo_pos"] = np.array(leo_loc[0:self.NumLeoUser,self.tIndex].flatten(), dtype=np.float32)
         # Log current observation
-        t = np.array(self.eng.workspace['t'])
-        logging.info("===get_state_from_matlab: t from matlab: %s ===",t)
-        logging.info("===get_state_from_matlab: t from python env: %s ===",self.tIndex)
-        logging.info("get_state_from_matlab:self.FreqAlloc: %s",self.FreqAlloc)
+        # t = np.array(self.eng.workspace['t'])
+        # logging.info("===get_state_from_matlab: t from matlab: %s ===",t)
+        # logging.info("===get_state_from_matlab: t from python env: %s ===",self.tIndex)
+        # logging.info("get_state_from_matlab:self.FreqAlloc: %s",self.FreqAlloc)
 
         # # Log utc_time
         # logging.info("utc_time: %s", cur_obs["utc_time"].tolist())
@@ -165,13 +156,13 @@ class CogSatEnv(gymnasium.Env):
         # logging.info("freq_lgs_leo: %s", cur_obs["freq_lgs_leo"].tolist())
         # logging.info("freq_ggs_geo: %s", cur_obs["freq_ggs_geo"].tolist())
 
-        logging.info("cur_obs: %s", cur_obs)
-        print("cur_obs",cur_obs)
+        logging.info("cur_obs: %s", self.cur_obs)
+        #print("cur_obs",self.cur_obs)
 
         # (Optional) Validate against observation_space
-        assert self.observation_space.contains(cur_obs), "cur_obs doesn't match the observation space!"
+        assert self.observation_space.contains(self.cur_obs), "cur_obs doesn't match the observation space!"
 
-        return cur_obs
+        return self.cur_obs
     
 
  
@@ -179,7 +170,7 @@ class CogSatEnv(gymnasium.Env):
         """
         Apply action and return (observation, reward, terminated, truncated, info)
         """
-        
+        self.eng.workspace['t'] = int(self.tIndex) + 1
         start_time = time.time()
 
         # Action start from 0 and ends before self.LeoChannels, that means it is not included
@@ -208,8 +199,7 @@ class CogSatEnv(gymnasium.Env):
         channel_list_leo = np.array(self.eng.workspace['ChannelListLeo'])
         Serv_idxLEO = np.array(self.eng.workspace['Serv_idxLEO'])
 
-        self.tIndex = int(self.tIndex)
-        logging.info("=== Current Time Index === %s", self.tIndex)
+
 
 
         # Store original values for comparison
@@ -305,7 +295,6 @@ class CogSatEnv(gymnasium.Env):
 
 
         self.reward = reward
-        #print("Reward: ", reward)
         logging.info("=== Reward === %s", reward)
 
         
@@ -314,16 +303,16 @@ class CogSatEnv(gymnasium.Env):
 
 
         self.tIndex += 1
-        self.eng.workspace['t'] = int(self.tIndex) + 1
+        
         if self.tIndex >= self.timelength - 1:
             terminated = True
             #print("Episode finished after {} timesteps".format(self.tIndex))
             logging.info("=== Episode finished after %s timesteps ===", self.tIndex)
             self.save_npy_data(f'Episode_{self.episode_number}')
-            filename = f"{saved_folder}/{self.mat_filename}_workspace_Saved_data_Close.mat"
-            save_cmd = f"save('{filename}')"
-            self.eng.eval(save_cmd, nargout=0)
-            self.eng.eval("P08_SaveData", nargout=0)
+            # filename = f"{saved_folder}/{self.mat_filename}_{self.episode_number}_workspace_Saved_data_Close.mat"
+            # save_cmd = f"save('{filename}')"
+            # self.eng.eval(save_cmd, nargout=0)
+            # self.eng.eval("P08_SaveData", nargout=0)
 
         info = {}
 
@@ -332,7 +321,7 @@ class CogSatEnv(gymnasium.Env):
         end_time = time.time()
         step_duration = end_time - start_time
         logging.info("=== Time taken for timestep: %.4f seconds ===", step_duration)
-        print("=== Time taken for timestep: %.4f seconds ===", step_duration)
+        #print("=== Time taken for timestep: %.4f seconds ===", step_duration)
 
  
         return next_observation, reward, terminated, truncated, info
@@ -352,8 +341,9 @@ class CogSatEnv(gymnasium.Env):
         
         self.ep_end_time = time.time()
         self.ep_step_duration = self.ep_end_time - self.ep_start_time
-        logging.info("=== Episode Time taken for timestep: %.4f seconds ===", self.ep_step_duration)
-        print("=== Episode Time taken for timestep: %.4f seconds ===", self.ep_step_duration)
+        # logging.info("=== Episode Time taken for timestep: %.4f seconds ===", self.ep_step_duration)
+        logging.info("=== Episode Index: {} Time taken for timestep: {:.4f} seconds ===".format(self.episode_number, self.ep_step_duration))
+        print("=== Episode Index: {} Time taken for timestep: {:.4f} seconds ===".format(self.episode_number, self.ep_step_duration))
 
         self.ep_start_time = time.time()
 
@@ -383,9 +373,9 @@ class CogSatEnv(gymnasium.Env):
         self.eng.workspace["FreqAlloc"] = matlab.double(state["FreqAlloc"].tolist())
 
         # Sync observation state
-        self.intial_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
-        self.intial_obs["freq_lgs_leo"] = np.array(state["FreqAlloc"][:self.NumLeoUser, self.tIndex], dtype=np.int64)
-        self.intial_obs["freq_ggs_geo"] = np.array(state["FreqAlloc"][self.NumLeoUser:self.NumLeoUser+ self.NumGeoUser, self.tIndex], dtype=np.int64)
+        self.cur_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
+        self.cur_obs["freq_lgs_leo"] = np.array(state["FreqAlloc"][:self.NumLeoUser, self.tIndex], dtype=np.int64)
+        self.cur_obs["freq_ggs_geo"] = np.array(state["FreqAlloc"][self.NumLeoUser:self.NumLeoUser+ self.NumGeoUser, self.tIndex], dtype=np.int64)
 
         logging.info("=== Environment Restored to tIndex %s ===", self.tIndex)
 
