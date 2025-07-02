@@ -11,3 +11,7 @@ train_log.txt
 /a2c_dsa_tensorboard
 *.pyc
 *.mat
+*.csv
+*.eps
+*.png
+*.pdf
