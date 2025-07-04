@@ -13,13 +13,7 @@ import os
 
 env_name = "CogSatEnv-v1"
 
-# Configure the logger
-logging.basicConfig(
-    filename='train_log.txt',
-    level=logging.INFO,
-    format='%(asctime)s [%(levelname)s] %(message)s',
-    filemode='w'  # Overwrites the file each time
-)
+
 
  
 class CogSatEnv(gymnasium.Env):

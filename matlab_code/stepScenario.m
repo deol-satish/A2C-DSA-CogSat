@@ -98,15 +98,15 @@ for userIdx = 1:NumGS
     Intf_mW_dict(userIdx, t) = PintTotal_mW;
     Intf(userIdx, t) = Pint_totaldB;
     %% Print full debug info
-    fprintf('[t=%d] User %d → Channel %d: Psig=%.2f dBm, Interf=%.2f dBm, SINR=%.2f dB\n', ...
-        t, userIdx, ch_user, Psig_dBm, Pint_totaldB, SINR(userIdx, t));
-    
-    if ~isempty(interferersLEO)
-        fprintf('    ↳ LEO Interferers: %s\n', mat2str(interferersLEO));
-    end
-    if ~isempty(interferersGEO)
-        fprintf('    ↳ GEO Interferers: %s\n', mat2str(interferersGEO));
-    end
+    % fprintf('[t=%d] User %d → Channel %d: Psig=%.2f dBm, Interf=%.2f dBm, SINR=%.2f dB\n', ...
+    %     t, userIdx, ch_user, Psig_dBm, Pint_totaldB, SINR(userIdx, t));
+    % 
+    % if ~isempty(interferersLEO)
+    %     fprintf('    ↳ LEO Interferers: %s\n', mat2str(interferersLEO));
+    % end
+    % if ~isempty(interferersGEO)
+    %     fprintf('    ↳ GEO Interferers: %s\n', mat2str(interferersGEO));
+    % end
 end
 % Build list of users per channel
 channelUsers = cell(1, numChannels);
@@ -146,5 +146,5 @@ for ch = 1:numChannels
 end
 % Spectral Efficiency
 SE(t) = numUseful / numChannels;
-fprintf('[t=%d] Useful Channels: %d, Interfered: %d → SE = %.3f\n', ...
-    t, numUseful, numInterfered, SE(t));
+% fprintf('[t=%d] Useful Channels: %d, Interfered: %d → SE = %.3f\n', ...
+%     t, numUseful, numInterfered, SE(t));
