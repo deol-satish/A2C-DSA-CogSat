@@ -9,15 +9,7 @@ from datetime import datetime, timedelta, timezone
 import time
 import os
 
-# Folder name
-saved_folder = "saved_data"
 
-# Create the folder if it doesn't exist
-if not os.path.exists(saved_folder):
-    os.makedirs(saved_folder)
-    print(f"Folder '{saved_folder}' created.")
-else:
-    print(f"Folder '{saved_folder}' already exists.")
 
 env_name = "CogSatEnv-v1"
 
@@ -39,6 +31,25 @@ class CogSatEnv(gymnasium.Env):
             self.spec = gymnasium.envs.registration.EnvSpec("CogSatEnv-v1")
 
 
+        self.no_channels = env_config.get('no_channels')
+        self.no_leo_user = env_config.get('no_leo_user')
+        self.no_geo_user = env_config.get('no_geo_user')
+        self.saved_folder = env_config.get('saved_folder')
+
+        # Print statements
+        print("self.no_channels:", self.no_channels)
+        print("self.no_leo_user:", self.no_leo_user)
+        print("self.no_geo_user:", self.no_geo_user)
+        print("self.saved_folder:", self.saved_folder)
+
+        # Logging statements
+        logging.info("self.no_channels: %s", self.no_channels)
+        logging.info("self.no_leo_user: %s", self.no_leo_user)
+        logging.info("self.no_geo_user: %s", self.no_geo_user)
+        logging.info("self.saved_folder: %s", self.saved_folder)
+
+
+
         self.episode_number = -1
             
  
@@ -49,12 +60,32 @@ class CogSatEnv(gymnasium.Env):
         self.eng.addpath(r'./matlab_code', nargout=0)
 
         # Initialize the MATLAB scenario and Save Baseline
+        self.eng.eval("P01_Parameters", nargout=0)
+        self.eng.eval("P01_Parameters", nargout=0)
+        self.eng.eval("P01_Parameters", nargout=0)
+
+
+        self.eng.workspace['numChannels'] = self.no_channels
+        self.eng.workspace['NumLeoUser'] = self.no_leo_user
+        self.eng.workspace['NumGeoUser'] = self.no_geo_user
+
+        print("self.eng.workspace['numChannels']",self.eng.workspace['numChannels'])
+        print("self.eng.workspace['NumLeoUser']",self.eng.workspace['NumLeoUser'])
+        print("self.eng.workspace['NumGeoUser']",self.eng.workspace['NumGeoUser'])
+
+        # Log the values using logging.info
+        logging.info("self.eng.workspace['numChannels']: %s", self.eng.workspace['numChannels'])
+        logging.info("self.eng.workspace['NumLeoUser']: %s", self.eng.workspace['NumLeoUser'])
+        logging.info("self.eng.workspace['NumGeoUser']: %s", self.eng.workspace['NumGeoUser'])
+
+
+
         self.eng.eval("initialiseScenario", nargout=0)
         self.eng.eval("P06_Intf_Eval", nargout=0)
         self.eng.eval("resetScenario", nargout=0)
         self.save_npy_data('Baseline')       
 
-        filename = f"{saved_folder}/Baseline_workspace_Saved_data.mat"
+        filename = f"{self.saved_folder}/Baseline_workspace_Saved_data.mat"
         save_cmd = f"save('{filename}')"
         self.eng.eval(save_cmd, nargout=0)
 
@@ -104,13 +135,13 @@ class CogSatEnv(gymnasium.Env):
         SE = np.array(self.eng.workspace['SE'])
         FreqAlloc = np.array(self.eng.workspace['FreqAlloc'])
 
-        np.save(f'{saved_folder}/{extra_tag}_SINR.npy', SINR)
-        np.save(f'{saved_folder}/{extra_tag}_Intf.npy', Intf)
-        np.save(f'{saved_folder}/{extra_tag}_SINR_mW_dict.npy', SINR_mW_dict)
-        np.save(f'{saved_folder}/{extra_tag}_Intf_mW_dict.npy', Intf_mW_dict)
-        np.save(f'{saved_folder}/{extra_tag}_Thrpt.npy', Thrpt)
-        np.save(f'{saved_folder}/{extra_tag}_SE.npy', SE)
-        np.save(f'{saved_folder}/{extra_tag}_FreqAlloc.npy', FreqAlloc)
+        np.save(f'{self.saved_folder}/{extra_tag}_SINR.npy', SINR)
+        np.save(f'{self.saved_folder}/{extra_tag}_Intf.npy', Intf)
+        np.save(f'{self.saved_folder}/{extra_tag}_SINR_mW_dict.npy', SINR_mW_dict)
+        np.save(f'{self.saved_folder}/{extra_tag}_Intf_mW_dict.npy', Intf_mW_dict)
+        np.save(f'{self.saved_folder}/{extra_tag}_Thrpt.npy', Thrpt)
+        np.save(f'{self.saved_folder}/{extra_tag}_SE.npy', SE)
+        np.save(f'{self.saved_folder}/{extra_tag}_FreqAlloc.npy', FreqAlloc)
     
     
     def get_matlab_ts(self):
@@ -135,8 +166,8 @@ class CogSatEnv(gymnasium.Env):
         self.ts = self.get_matlab_ts()
 
         self.FreqAlloc = np.array(self.eng.workspace['FreqAlloc'])
-        self.LEOFreqAlloc = self.FreqAlloc[:10,:]
-        self.GEOFreqAlloc = self.FreqAlloc[10:20,:]
+        self.LEOFreqAlloc = self.FreqAlloc[:self.NumLeoUser,:]
+        self.GEOFreqAlloc = self.FreqAlloc[self.NumLeoUser:,:]
 
         self.cur_obs["utc_time"] = np.array([self.ts[self.tIndex]], dtype=np.int64)
         self.cur_obs["freq_lgs_leo"] = np.array(self.LEOFreqAlloc[:,self.tIndex], dtype=np.int64)
@@ -240,9 +271,9 @@ class CogSatEnv(gymnasium.Env):
         # Count how many values are repeated (i.e., count > 1)
         num_repeated = np.sum(counts > 1)   
 
-        # Split into LEO (first 10) and GEO (last 10)
-        leo_vals = FreqAlloc[:10]
-        geo_vals = FreqAlloc[10:]
+        # Split into LEO and GEO
+        leo_vals = FreqAlloc[:self.NumLeoUser]
+        geo_vals = FreqAlloc[self.NumLeoUser:]
 
         # Find common elements
         common_vals = np.intersect1d(leo_vals, geo_vals)
@@ -309,7 +340,7 @@ class CogSatEnv(gymnasium.Env):
             #print("Episode finished after {} timesteps".format(self.tIndex))
             logging.info("=== Episode finished after %s timesteps ===", self.tIndex)
             self.save_npy_data(f'Episode_{self.episode_number}')
-            # filename = f"{saved_folder}/{self.mat_filename}_{self.episode_number}_workspace_Saved_data_Close.mat"
+            # filename = f"{self.saved_folder}/{self.mat_filename}_{self.episode_number}_workspace_Saved_data_Close.mat"
             # save_cmd = f"save('{filename}')"
             # self.eng.eval(save_cmd, nargout=0)
             # self.eng.eval("P08_SaveData", nargout=0)
@@ -387,7 +418,7 @@ class CogSatEnv(gymnasium.Env):
         #print("Saving MATLAB Data.")
         logging.info("=== Saving MATLAB Data ===")
         # self.eng.eval("P08_SaveData", nargout=0)
-        filename = f"{saved_folder}/{self.mat_filename}_workspace_Saved_data_Close.mat"
+        filename = f"{self.saved_folder}/{self.mat_filename}_workspace_Saved_data_Close.mat"
         save_cmd = f"save('{filename}')"
         self.eng.eval(save_cmd, nargout=0)
         self.eng.quit()

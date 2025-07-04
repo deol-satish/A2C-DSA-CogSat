@@ -1,7 +1,6 @@
 %% Main Script to define the Geometrical simulator, Receivers, and Interference
-clear; clc;close all hidden
 %% Define Parameters and Ground stations
-P01_Parameters
+%% P01_Parameters
 P02_GStations
 %% Create Scenario
 fprintf('Creating satellite scenario...\n');
