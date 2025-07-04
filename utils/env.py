@@ -39,7 +39,7 @@ class CogSatEnv(gymnasium.Env):
             self.spec = gymnasium.envs.registration.EnvSpec("CogSatEnv-v1")
 
 
-        self.episode_number = 0
+        self.episode_number = -1
             
  
         # Start MATLAB engine and set path
